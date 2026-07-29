@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EU Governance Assessment — Country Dashboard</title>
+<style>
+  :root{
+    --ink:#2c2c2a; --sub:#5f5e5a; --faint:#98968f; --line:#e6e5e0;
+    --blue:#185fa5; --blue2:#2a78d6; --orange:#eb6834; --green:#1baf7a;
+    --euga:#3a3a38; --bad:#a32d2d; --amber:#b9832a; --good:#1e7a4c;
+    --paper:#fdfcfa; --card:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:var(--paper); margin:0; padding:24px 16px 60px; }
+  .wrap{ max-width:900px; margin:0 auto; }
+  .eyebrow{ font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); font-weight:600; }
+  h1{ font-size:22px; font-weight:700; margin:4px 0 6px; }
+  h2{ font-size:19px; font-weight:700; margin:0; }
+  .lede{ font-size:13.5px; color:var(--sub); line-height:1.6; max-width:760px; }
+  .lede b{ color:var(--ink); }
+  .disclaimer{ font-size:11.5px; color:var(--faint); border-top:1px solid var(--line); margin-top:40px; padding-top:12px; line-height:1.6; }
+
+  .modeToggle{ display:flex; gap:8px; margin:18px 0 22px; }
+  .modeToggle button{ font-size:12.5px; font-weight:600; padding:7px 14px; border-radius:20px; border:1px solid var(--line); background:#fff; color:var(--sub); cursor:pointer; }
+  .modeToggle button.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+
+  .tilegrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:10px; }
+  .tile{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 12px 10px; position:relative; }
+  .tile.clickable{ cursor:pointer; transition:box-shadow .15s, transform .15s; }
+  .tile.clickable:hover{ box-shadow:0 3px 10px rgba(0,0,0,.08); transform:translateY(-1px); }
+  .tile.disabled{ opacity:.5; }
+  .tile .tname{ font-size:12.5px; font-weight:600; margin-bottom:6px; min-height:32px; }
+  .tile .tband{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; margin-bottom:2px; }
+  .tile .tscore{ font-size:19px; font-weight:700; line-height:1; }
+  .tile .ttrend{ font-size:11px; color:var(--sub); margin-top:4px; }
+  .score-bad{ color:var(--bad); }
+  .score-amber{ color:var(--amber); }
+  .score-good{ color:var(--good); }
+  .legend{ display:flex; flex-wrap:wrap; gap:16px; font-size:11.5px; color:var(--sub); margin:14px 0 4px; }
+  .legend span{ display:inline-flex; align-items:center; gap:5px; }
+  .legend i{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+
+  .cmp-header{ display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:26px 0 4px; }
+  .cmp-year{ font-size:20px; font-weight:700; color:var(--blue); min-width:52px; text-align:right; }
+  .cmp-slider-row{ display:flex; align-items:center; gap:10px; margin:8px 0 6px; }
+  .cmp-slider-row input[type=range]{ flex:1; accent-color:var(--blue); height:4px; }
+  .cmp-swatch-euga{ width:8px; height:8px; background:var(--euga); display:inline-block; transform:rotate(45deg); border-radius:1px; }
+  #cmp-svg-wrap{ width:100%; overflow:hidden; }
+  #cmp-svg-wrap svg text{ font-family:inherit; }
+
+  #view-dossier{ display:none; }
+  .backlink{ font-size:12.5px; color:var(--blue); cursor:pointer; margin-bottom:16px; font-weight:600; }
+  .backlink:hover{ text-decoration:underline; }
+  .dhead{ display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px; border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:16px; }
+  .dhead .dscore{ font-size:30px; font-weight:700; line-height:1; }
+  .dhead .dscorewrap{ text-align:right; }
+  .dhead .dband{ font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; margin-bottom:2px; }
+  .dhead .dqual{ font-size:11.5px; color:var(--sub); margin-top:2px; max-width:360px; }
+  .statrow{ display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+  .stat{ flex:1; min-width:130px; background:var(--card); border:1px solid var(--line); border-radius:8px; padding:10px 12px; }
+  .stat .slabel{ font-size:10.5px; color:var(--faint); text-transform:uppercase; letter-spacing:.04em; font-weight:600; }
+  .stat .sval{ font-size:19px; font-weight:700; margin-top:2px; }
+  .stat .sdelta{ font-size:11px; margin-top:2px; }
+  .delta-down{ color:var(--bad); } .delta-up{ color:var(--good); } .delta-flat{ color:var(--faint); }
+
+  .tabs{ display:flex; gap:2px; border-bottom:1px solid var(--line); margin-bottom:18px; flex-wrap:wrap; }
+  .tab{ font-size:12.5px; font-weight:600; color:var(--sub); padding:9px 12px; cursor:pointer; border-bottom:2px solid transparent; }
+  .tab.active{ color:var(--blue); border-bottom-color:var(--blue); }
+  .tabpanel{ display:none; }
+  .tabpanel.active{ display:block; }
+
+  .comp-card{ border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-bottom:10px; }
+  .comp-card .chead{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; gap:10px; flex-wrap:wrap; }
+  .comp-card .cname{ font-size:13.5px; font-weight:700; }
+  .comp-card .cscorewrap{ text-align:right; }
+  .comp-card .cscore{ font-size:16px; font-weight:700; }
+  .comp-card .cdelta{ font-size:11px; }
+  .comp-card .cdesc{ font-size:12px; color:var(--sub); line-height:1.55; }
+  .comp-card .cnote{ font-size:12px; line-height:1.55; margin-top:6px; border-top:1px dashed var(--line); padding-top:6px; font-weight:600; }
+  .comp-card .cnote.cnote-c1{ color:#185fa5; }
+  .comp-card .cnote.cnote-c2{ color:#b85422; }
+  .comp-card .cnote.cnote-c3{ color:#158f63; }
+
+  #d-trendsvg{ position:relative; }
+  .trend-tooltip{ position:absolute; display:none; pointer-events:none; z-index:5; background:#fff; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:11px; line-height:1.6; box-shadow:0 3px 12px rgba(0,0,0,.12); min-width:150px; }
+  .trend-tooltip .tt-year{ font-size:11.5px; font-weight:700; color:var(--ink); margin-bottom:3px; }
+  .trend-tooltip .tt-row{ display:flex; align-items:center; gap:5px; color:var(--sub); white-space:nowrap; }
+  .trend-tooltip .tt-row b{ color:var(--ink); margin-left:auto; padding-left:10px; }
+  .trend-tooltip .tt-dot{ width:7px; height:7px; border-radius:50%; display:inline-block; flex:0 0 auto; }
+
+  .context p{ font-size:13px; line-height:1.7; color:var(--ink); margin:0 0 12px; }
+  .context p.lead5y{ background:#eef4fa; border:1px solid #cfe0ef; border-radius:8px; padding:11px 13px; }
+  .context .flag-box{ background:#fbf3e6; border:1px solid #e9d3ab; border-radius:8px; padding:12px 14px; font-size:12.5px; line-height:1.6; color:#6b4d10; margin:16px 0; }
+  .context .flag-box b{ display:block; margin-bottom:3px; }
+
+  table.src{ width:100%; border-collapse:collapse; font-size:12px; }
+  table.src th{ text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--faint); border-bottom:1px solid var(--line); padding:6px 8px; }
+  table.src td{ padding:8px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.5; }
+  .badge{ font-size:10px; font-weight:700; padding:2px 7px; border-radius:8px; display:inline-block; }
+  .badge.high{ background:#e7f4ec; color:var(--good); }
+  .badge.med{ background:#fbf1e0; color:var(--amber); }
+  .methnote{ font-size:11.5px; color:var(--sub); line-height:1.6; margin-top:14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============================================================ LANDING ============================================================ -->
+  <div id="view-landing">
+    <div class="eyebrow">Aantekeningen in de marge</div>
+    <h1>EU Governance Assessment — country dashboard</h1>
+    <p class="lede">This dashboard translates the EU Governance Assessment (EUGA) index into a navigable, sourced tool for tracking how EU member states measure up against the values set out in Article 2 TEU. Each of the 26 member states with sufficient source data has a complete dossier — trend view, component breakdown, qualitative context and sourcing. The full methodology, including indicator selection, weighting and the signal model, is set out in the accompanying methodology memorandum.</p>
+
+    <div class="modeToggle">
+      <button id="btn-mode-tiles" class="active">Tiles</button>
+      <button id="btn-mode-cmp">Comparison mode (dot plot)</button>
+    </div>
+
+    <!-- TILES MODE -->
+    <div id="mode-tiles">
+      <div class="legend">
+        <span><i style="background:var(--bad)"></i>&nbsp;high concern — below threshold (0.60)</span>
+        <span><i style="background:var(--amber)"></i>&nbsp;moderate concern (0.60–0.75)</span>
+        <span><i style="background:var(--good)"></i>&nbsp;low concern (above 0.75)</span>
+      </div>
+      <div class="lede" style="margin:6px 0 12px;">Sorted by concern level, highest first. Each tile also shows the change over the last five years.</div>
+      <div class="tilegrid" id="tilegrid"></div>
+    </div>
+
+    <!-- COMPARISON MODE (existing dot plot, reused) -->
+    <div id="mode-cmp" style="display:none;">
+      <div class="cmp-header">
+        <div class="eyebrow" style="font-size:11px;">Score by member state, by year</div>
+        <div class="cmp-year" id="cmp-year-label">2025</div>
+      </div>
+      <div class="cmp-slider-row">
+        <input type="range" id="cmp-slider" min="0" max="0" value="0" step="1" aria-label="Select year">
+      </div>
+      <div class="legend">
+        <span><i style="background:#2a78d6"></i>C1 democracy</span>
+        <span><i style="background:#eb6834"></i>C2 rule of law</span>
+        <span><i style="background:#1baf7a"></i>C3 fundamental rights</span>
+        <span><span class="cmp-swatch-euga"></span>&nbsp;EUGA score</span>
+      </div>
+      <div id="cmp-svg-wrap"></div>
+      <div class="methnote">Dashed line: signal threshold 0.60 (EUGA model). This view is for comparison across countries in a single year — use the tile view to open a country dossier.</div>
+    </div>
+
+    <div class="disclaimer">
+      Sources (quantitative layer): V-Dem Liberal Democracy Index and Freedom House Civil Liberties (via Our World in Data), World Justice Project Rule of Law Index. Only member states with all three components available for the selected year are shown. See the methodology memorandum for the full indicator selection, weighting and signal-model rationale.
+    </div>
+  </div>
+
+  <!-- ============================================================ DOSSIER (rendered dynamically) ============================================================ -->
+  <div id="view-dossier">
+    <div class="backlink" onclick="showLanding()">← Back to overview</div>
+
+    <div class="dhead">
+      <div>
+        <div class="eyebrow" id="d-eyebrow">Country dossier</div>
+        <h2 id="d-title">—</h2>
+      </div>
+      <div class="dscorewrap">
+        <div class="dband" id="d-band">—</div>
+        <div class="dscore" id="d-score">—</div>
+        <div class="dqual" id="d-qual">—</div>
+      </div>
+    </div>
+
+    <div class="statrow" id="d-stats"></div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="trend">Trend</div>
+      <div class="tab" data-tab="componenten">Components</div>
+      <div class="tab" data-tab="context">Context &amp; developments</div>
+      <div class="tab" data-tab="bronnen">Sources &amp; methodology</div>
+    </div>
+
+    <div class="tabpanel active" id="panel-trend">
+      <div id="d-trendsvg"></div>
+      <div class="legend">
+        <span><i style="background:#2a78d6"></i>C1 democracy</span>
+        <span><i style="background:#eb6834"></i>C2 rule of law</span>
+        <span><i style="background:#1baf7a"></i>C3 fundamental rights</span>
+        <span><span class="cmp-swatch-euga"></span>&nbsp;EUGA score</span>
+      </div>
+      <div class="methnote" id="d-trendnote"></div>
+    </div>
+
+    <div class="tabpanel" id="panel-componenten">
+      <div id="d-components"></div>
+    </div>
+
+    <div class="tabpanel" id="panel-context">
+      <div class="context" id="d-context"></div>
+    </div>
+
+    <div class="tabpanel" id="panel-bronnen">
+      <table class="src">
+        <tr><th>Source</th><th>Nature</th><th>Certainty</th></tr>
+        <tbody id="d-sources"></tbody>
+      </table>
+      <div class="methnote" id="d-methnote"></div>
+      <div class="methnote" style="margin-top:6px;"><b>Certainty rubric:</b> High = primary legal/institutional record (laws, court and tribunal rulings, official EU/UN/government documents, official inquiry reports) or a flagship, methodologically transparent comparative index/monitor (V-Dem, Freedom House, WJP, BTI, EUI-affiliated monitors). Medium = news reporting (including investigative journalism), NGO/advocacy statements and reports, think-tank or policy-institute analysis, non-peer-reviewed academic commentary, and reference works. This distinguishes primary/index-grade sources from credible but secondary or interpretive ones; it is not a judgement on accuracy.</div>
+    </div>
+
+    <div class="disclaimer">Aantekeningen in de marge — compiled with extensive editorial and visual input from Claude, Anthropic’s AI assistant. See the methodology memorandum for indicator selection, weighting and the signal model.</div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var DATA = {"2013": [{"land": "Bulgaria", "c1": 0.542, "c2": 0.528, "c3": 0.757, "euga": 0.609}, {"land": "Romania", "c1": 0.563, "c2": 0.588, "c3": 0.782, "euga": 0.644}, {"land": "Hungary", "c1": 0.575, "c2": 0.641, "c3": 0.775, "euga": 0.664}, {"land": "Croatia", "c1": 0.71, "c2": 0.568, "c3": 0.753, "euga": 0.677}, {"land": "Greece", "c1": 0.801, "c2": 0.586, "c3": 0.776, "euga": 0.721}, {"land": "Italy", "c1": 0.786, "c2": 0.619, "c3": 0.862, "euga": 0.756}, {"land": "Slovenia", "c1": 0.778, "c2": 0.639, "c3": 0.888, "euga": 0.768}, {"land": "Czechia", "c1": 0.779, "c2": 0.652, "c3": 0.893, "euga": 0.775}, {"land": "Portugal", "c1": 0.829, "c2": 0.652, "c3": 0.875, "euga": 0.785}, {"land": "Spain", "c1": 0.778, "c2": 0.71, "c3": 0.929, "euga": 0.805}, {"land": "Poland", "c1": 0.821, "c2": 0.697, "c3": 0.923, "euga": 0.814}, {"land": "France", "c1": 0.822, "c2": 0.761, "c3": 0.893, "euga": 0.825}, {"land": "Belgium", "c1": 0.839, "c2": 0.737, "c3": 0.907, "euga": 0.828}, {"land": "Estonia", "c1": 0.834, "c2": 0.755, "c3": 0.894, "euga": 0.828}, {"land": "Austria", "c1": 0.807, "c2": 0.803, "c3": 0.912, "euga": 0.841}, {"land": "Germany", "c1": 0.853, "c2": 0.789, "c3": 0.902, "euga": 0.848}, {"land": "Netherlands", "c1": 0.83, "c2": 0.855, "c3": 0.918, "euga": 0.868}, {"land": "Finland", "c1": 0.858, "c2": 0.865, "c3": 0.95, "euga": 0.891}, {"land": "Denmark", "c1": 0.895, "c2": 0.875, "c3": 0.954, "euga": 0.908}, {"land": "Sweden", "c1": 0.885, "c2": 0.884, "c3": 0.964, "euga": 0.911}], "2014": [{"land": "Bulgaria", "c1": 0.561, "c2": 0.516, "c3": 0.744, "euga": 0.607}, {"land": "Hungary", "c1": 0.521, "c2": 0.598, "c3": 0.757, "euga": 0.625}, {"land": "Romania", "c1": 0.57, "c2": 0.577, "c3": 0.773, "euga": 0.64}, {"land": "Croatia", "c1": 0.704, "c2": 0.564, "c3": 0.738, "euga": 0.669}, {"land": "Greece", "c1": 0.804, "c2": 0.581, "c3": 0.759, "euga": 0.715}, {"land": "Italy", "c1": 0.786, "c2": 0.616, "c3": 0.866, "euga": 0.756}, {"land": "Slovenia", "c1": 0.794, "c2": 0.63, "c3": 0.896, "euga": 0.773}, {"land": "Spain", "c1": 0.774, "c2": 0.653, "c3": 0.892, "euga": 0.773}, {"land": "Czechia", "c1": 0.766, "c2": 0.657, "c3": 0.899, "euga": 0.774}, {"land": "Poland", "c1": 0.812, "c2": 0.669, "c3": 0.858, "euga": 0.78}, {"land": "Portugal", "c1": 0.829, "c2": 0.648, "c3": 0.882, "euga": 0.786}, {"land": "France", "c1": 0.821, "c2": 0.739, "c3": 0.882, "euga": 0.814}, {"land": "Belgium", "c1": 0.838, "c2": 0.745, "c3": 0.915, "euga": 0.832}, {"land": "Estonia", "c1": 0.838, "c2": 0.76, "c3": 0.898, "euga": 0.832}, {"land": "Germany", "c1": 0.845, "c2": 0.789, "c3": 0.92, "euga": 0.851}, {"land": "Austria", "c1": 0.805, "c2": 0.818, "c3": 0.935, "euga": 0.853}, {"land": "Netherlands", "c1": 0.831, "c2": 0.824, "c3": 0.924, "euga": 0.86}, {"land": "Finland", "c1": 0.858, "c2": 0.829, "c3": 0.947, "euga": 0.878}, {"land": "Sweden", "c1": 0.885, "c2": 0.844, "c3": 0.956, "euga": 0.895}, {"land": "Denmark", "c1": 0.895, "c2": 0.872, "c3": 0.952, "euga": 0.906}], "2015": [{"land": "Hungary", "c1": 0.477, "c2": 0.575, "c3": 0.739, "euga": 0.597}, {"land": "Bulgaria", "c1": 0.566, "c2": 0.548, "c3": 0.748, "euga": 0.621}, {"land": "Romania", "c1": 0.609, "c2": 0.626, "c3": 0.778, "euga": 0.671}, {"land": "Croatia", "c1": 0.703, "c2": 0.599, "c3": 0.75, "euga": 0.684}, {"land": "Greece", "c1": 0.785, "c2": 0.614, "c3": 0.744, "euga": 0.714}, {"land": "Italy", "c1": 0.786, "c2": 0.64, "c3": 0.872, "euga": 0.766}, {"land": "Spain", "c1": 0.759, "c2": 0.687, "c3": 0.887, "euga": 0.778}, {"land": "Slovenia", "c1": 0.804, "c2": 0.654, "c3": 0.886, "euga": 0.781}, {"land": "Poland", "c1": 0.775, "c2": 0.716, "c3": 0.881, "euga": 0.791}, {"land": "Czechia", "c1": 0.766, "c2": 0.733, "c3": 0.897, "euga": 0.799}, {"land": "Portugal", "c1": 0.829, "c2": 0.702, "c3": 0.899, "euga": 0.81}, {"land": "France", "c1": 0.812, "c2": 0.747, "c3": 0.892, "euga": 0.817}, {"land": "Belgium", "c1": 0.837, "c2": 0.772, "c3": 0.921, "euga": 0.843}, {"land": "Estonia", "c1": 0.845, "c2": 0.787, "c3": 0.904, "euga": 0.846}, {"land": "Austria", "c1": 0.805, "c2": 0.829, "c3": 0.937, "euga": 0.857}, {"land": "Germany", "c1": 0.845, "c2": 0.821, "c3": 0.933, "euga": 0.866}, {"land": "Netherlands", "c1": 0.831, "c2": 0.85, "c3": 0.929, "euga": 0.87}, {"land": "Finland", "c1": 0.827, "c2": 0.86, "c3": 0.955, "euga": 0.881}, {"land": "Sweden", "c1": 0.881, "c2": 0.861, "c3": 0.949, "euga": 0.897}, {"land": "Denmark", "c1": 0.894, "c2": 0.883, "c3": 0.952, "euga": 0.91}], "2016": [{"land": "Hungary", "c1": 0.474, "c2": 0.564, "c3": 0.729, "euga": 0.589}, {"land": "Bulgaria", "c1": 0.561, "c2": 0.541, "c3": 0.736, "euga": 0.612}, {"land": "Croatia", "c1": 0.651, "c2": 0.598, "c3": 0.764, "euga": 0.671}, {"land": "Romania", "c1": 0.63, "c2": 0.655, "c3": 0.784, "euga": 0.69}, {"land": "Poland", "c1": 0.598, "c2": 0.715, "c3": 0.786, "euga": 0.7}, {"land": "Greece", "c1": 0.776, "c2": 0.601, "c3": 0.743, "euga": 0.707}, {"land": "Italy", "c1": 0.791, "c2": 0.64, "c3": 0.861, "euga": 0.764}, {"land": "France", "c1": 0.812, "c2": 0.716, "c3": 0.791, "euga": 0.773}, {"land": "Spain", "c1": 0.766, "c2": 0.691, "c3": 0.883, "euga": 0.78}, {"land": "Slovenia", "c1": 0.795, "c2": 0.663, "c3": 0.884, "euga": 0.781}, {"land": "Czechia", "c1": 0.763, "c2": 0.745, "c3": 0.905, "euga": 0.804}, {"land": "Portugal", "c1": 0.83, "c2": 0.706, "c3": 0.895, "euga": 0.81}, {"land": "Belgium", "c1": 0.837, "c2": 0.784, "c3": 0.92, "euga": 0.847}, {"land": "Estonia", "c1": 0.859, "c2": 0.786, "c3": 0.899, "euga": 0.848}, {"land": "Austria", "c1": 0.78, "c2": 0.831, "c3": 0.94, "euga": 0.85}, {"land": "Germany", "c1": 0.848, "c2": 0.833, "c3": 0.928, "euga": 0.87}, {"land": "Netherlands", "c1": 0.831, "c2": 0.861, "c3": 0.929, "euga": 0.874}, {"land": "Finland", "c1": 0.827, "c2": 0.87, "c3": 0.959, "euga": 0.885}, {"land": "Sweden", "c1": 0.88, "c2": 0.861, "c3": 0.94, "euga": 0.893}, {"land": "Denmark", "c1": 0.892, "c2": 0.885, "c3": 0.96, "euga": 0.912}], "2018": [{"land": "Hungary", "c1": 0.373, "c2": 0.542, "c3": 0.628, "euga": 0.514}, {"land": "Bulgaria", "c1": 0.508, "c2": 0.527, "c3": 0.715, "euga": 0.583}, {"land": "Romania", "c1": 0.483, "c2": 0.648, "c3": 0.777, "euga": 0.636}, {"land": "Poland", "c1": 0.524, "c2": 0.678, "c3": 0.745, "euga": 0.649}, {"land": "Croatia", "c1": 0.615, "c2": 0.605, "c3": 0.751, "euga": 0.657}, {"land": "Greece", "c1": 0.767, "c2": 0.603, "c3": 0.732, "euga": 0.701}, {"land": "Italy", "c1": 0.787, "c2": 0.644, "c3": 0.853, "euga": 0.762}, {"land": "Slovenia", "c1": 0.759, "c2": 0.663, "c3": 0.871, "euga": 0.764}, {"land": "France", "c1": 0.802, "c2": 0.74, "c3": 0.778, "euga": 0.773}, {"land": "Czechia", "c1": 0.708, "c2": 0.734, "c3": 0.9, "euga": 0.781}, {"land": "Spain", "c1": 0.776, "c2": 0.695, "c3": 0.886, "euga": 0.786}, {"land": "Portugal", "c1": 0.849, "c2": 0.71, "c3": 0.897, "euga": 0.819}, {"land": "Austria", "c1": 0.776, "c2": 0.812, "c3": 0.925, "euga": 0.838}, {"land": "Belgium", "c1": 0.836, "c2": 0.767, "c3": 0.914, "euga": 0.839}, {"land": "Estonia", "c1": 0.863, "c2": 0.795, "c3": 0.911, "euga": 0.856}, {"land": "Germany", "c1": 0.834, "c2": 0.834, "c3": 0.925, "euga": 0.864}, {"land": "Netherlands", "c1": 0.83, "c2": 0.854, "c3": 0.925, "euga": 0.87}, {"land": "Finland", "c1": 0.849, "c2": 0.867, "c3": 0.954, "euga": 0.89}, {"land": "Sweden", "c1": 0.875, "c2": 0.863, "c3": 0.935, "euga": 0.891}, {"land": "Denmark", "c1": 0.89, "c2": 0.892, "c3": 0.951, "euga": 0.911}], "2019": [{"land": "Hungary", "c1": 0.364, "c2": 0.527, "c3": 0.624, "euga": 0.505}, {"land": "Bulgaria", "c1": 0.506, "c2": 0.536, "c3": 0.718, "euga": 0.587}, {"land": "Poland", "c1": 0.505, "c2": 0.666, "c3": 0.745, "euga": 0.639}, {"land": "Romania", "c1": 0.555, "c2": 0.635, "c3": 0.764, "euga": 0.651}, {"land": "Croatia", "c1": 0.617, "c2": 0.601, "c3": 0.741, "euga": 0.653}, {"land": "Greece", "c1": 0.763, "c2": 0.609, "c3": 0.747, "euga": 0.706}, {"land": "Slovenia", "c1": 0.743, "c2": 0.665, "c3": 0.867, "euga": 0.758}, {"land": "Italy", "c1": 0.777, "c2": 0.644, "c3": 0.863, "euga": 0.761}, {"land": "Czechia", "c1": 0.699, "c2": 0.719, "c3": 0.892, "euga": 0.77}, {"land": "France", "c1": 0.793, "c2": 0.736, "c3": 0.787, "euga": 0.772}, {"land": "Spain", "c1": 0.804, "c2": 0.711, "c3": 0.89, "euga": 0.802}, {"land": "Portugal", "c1": 0.82, "c2": 0.701, "c3": 0.894, "euga": 0.805}, {"land": "Austria", "c1": 0.793, "c2": 0.818, "c3": 0.927, "euga": 0.846}, {"land": "Belgium", "c1": 0.837, "c2": 0.785, "c3": 0.921, "euga": 0.847}, {"land": "Estonia", "c1": 0.848, "c2": 0.804, "c3": 0.913, "euga": 0.855}, {"land": "Netherlands", "c1": 0.819, "c2": 0.842, "c3": 0.92, "euga": 0.86}, {"land": "Germany", "c1": 0.831, "c2": 0.834, "c3": 0.924, "euga": 0.863}, {"land": "Sweden", "c1": 0.866, "c2": 0.86, "c3": 0.931, "euga": 0.886}, {"land": "Finland", "c1": 0.842, "c2": 0.869, "c3": 0.96, "euga": 0.89}, {"land": "Denmark", "c1": 0.886, "c2": 0.897, "c3": 0.958, "euga": 0.914}], "2020": [{"land": "Hungary", "c1": 0.351, "c2": 0.52, "c3": 0.623, "euga": 0.498}, {"land": "Bulgaria", "c1": 0.501, "c2": 0.539, "c3": 0.719, "euga": 0.586}, {"land": "Poland", "c1": 0.45, "c2": 0.659, "c3": 0.737, "euga": 0.615}, {"land": "Croatia", "c1": 0.647, "c2": 0.607, "c3": 0.75, "euga": 0.668}, {"land": "Greece", "c1": 0.669, "c2": 0.604, "c3": 0.744, "euga": 0.672}, {"land": "Romania", "c1": 0.676, "c2": 0.623, "c3": 0.767, "euga": 0.689}, {"land": "Slovenia", "c1": 0.665, "c2": 0.675, "c3": 0.877, "euga": 0.739}, {"land": "Italy", "c1": 0.774, "c2": 0.648, "c3": 0.864, "euga": 0.762}, {"land": "France", "c1": 0.789, "c2": 0.726, "c3": 0.784, "euga": 0.766}, {"land": "Czechia", "c1": 0.709, "c2": 0.723, "c3": 0.895, "euga": 0.776}, {"land": "Portugal", "c1": 0.806, "c2": 0.694, "c3": 0.89, "euga": 0.796}, {"land": "Spain", "c1": 0.786, "c2": 0.72, "c3": 0.893, "euga": 0.8}, {"land": "Austria", "c1": 0.786, "c2": 0.812, "c3": 0.925, "euga": 0.841}, {"land": "Belgium", "c1": 0.826, "c2": 0.78, "c3": 0.919, "euga": 0.842}, {"land": "Estonia", "c1": 0.842, "c2": 0.805, "c3": 0.909, "euga": 0.852}, {"land": "Netherlands", "c1": 0.813, "c2": 0.837, "c3": 0.92, "euga": 0.857}, {"land": "Germany", "c1": 0.821, "c2": 0.834, "c3": 0.926, "euga": 0.86}, {"land": "Sweden", "c1": 0.868, "c2": 0.861, "c3": 0.933, "euga": 0.887}, {"land": "Finland", "c1": 0.844, "c2": 0.87, "c3": 0.953, "euga": 0.889}, {"land": "Denmark", "c1": 0.882, "c2": 0.897, "c3": 0.958, "euga": 0.912}], "2021": [{"land": "Hungary", "c1": 0.346, "c2": 0.515, "c3": 0.613, "euga": 0.491}, {"land": "Poland", "c1": 0.424, "c2": 0.646, "c3": 0.722, "euga": 0.597}, {"land": "Bulgaria", "c1": 0.549, "c2": 0.534, "c3": 0.715, "euga": 0.599}, {"land": "Greece", "c1": 0.63, "c2": 0.601, "c3": 0.741, "euga": 0.657}, {"land": "Romania", "c1": 0.611, "c2": 0.621, "c3": 0.753, "euga": 0.662}, {"land": "Croatia", "c1": 0.641, "c2": 0.599, "c3": 0.752, "euga": 0.664}, {"land": "Slovenia", "c1": 0.624, "c2": 0.672, "c3": 0.795, "euga": 0.697}, {"land": "Malta", "c1": 0.605, "c2": 0.674, "c3": 0.867, "euga": 0.715}, {"land": "Cyprus", "c1": 0.653, "c2": 0.678, "c3": 0.859, "euga": 0.73}, {"land": "Latvia", "c1": 0.74, "c2": 0.709, "c3": 0.793, "euga": 0.747}, {"land": "Lithuania", "c1": 0.732, "c2": 0.752, "c3": 0.79, "euga": 0.758}, {"land": "France", "c1": 0.789, "c2": 0.722, "c3": 0.772, "euga": 0.761}, {"land": "Italy", "c1": 0.774, "c2": 0.648, "c3": 0.866, "euga": 0.763}, {"land": "Czechia", "c1": 0.698, "c2": 0.72, "c3": 0.894, "euga": 0.771}, {"land": "Portugal", "c1": 0.81, "c2": 0.69, "c3": 0.886, "euga": 0.795}, {"land": "Spain", "c1": 0.775, "c2": 0.719, "c3": 0.898, "euga": 0.798}, {"land": "Austria", "c1": 0.784, "c2": 0.806, "c3": 0.927, "euga": 0.839}, {"land": "Belgium", "c1": 0.827, "c2": 0.785, "c3": 0.921, "euga": 0.844}, {"land": "Luxembourg", "c1": 0.785, "c2": 0.824, "c3": 0.926, "euga": 0.845}, {"land": "Ireland", "c1": 0.833, "c2": 0.807, "c3": 0.91, "euga": 0.85}, {"land": "Netherlands", "c1": 0.812, "c2": 0.832, "c3": 0.922, "euga": 0.855}, {"land": "Estonia", "c1": 0.853, "c2": 0.805, "c3": 0.908, "euga": 0.856}, {"land": "Germany", "c1": 0.814, "c2": 0.838, "c3": 0.926, "euga": 0.859}, {"land": "Finland", "c1": 0.835, "c2": 0.875, "c3": 0.95, "euga": 0.886}, {"land": "Sweden", "c1": 0.866, "c2": 0.861, "c3": 0.933, "euga": 0.887}, {"land": "Denmark", "c1": 0.882, "c2": 0.896, "c3": 0.96, "euga": 0.913}], "2022": [{"land": "Hungary", "c1": 0.335, "c2": 0.51, "c3": 0.613, "euga": 0.486}, {"land": "Poland", "c1": 0.417, "c2": 0.647, "c3": 0.722, "euga": 0.596}, {"land": "Bulgaria", "c1": 0.602, "c2": 0.54, "c3": 0.715, "euga": 0.619}, {"land": "Romania", "c1": 0.542, "c2": 0.627, "c3": 0.754, "euga": 0.641}, {"land": "Greece", "c1": 0.607, "c2": 0.606, "c3": 0.749, "euga": 0.654}, {"land": "Croatia", "c1": 0.636, "c2": 0.604, "c3": 0.752, "euga": 0.664}, {"land": "Malta", "c1": 0.617, "c2": 0.671, "c3": 0.869, "euga": 0.719}, {"land": "Cyprus", "c1": 0.645, "c2": 0.678, "c3": 0.86, "euga": 0.727}, {"land": "Latvia", "c1": 0.74, "c2": 0.716, "c3": 0.8, "euga": 0.752}, {"land": "Slovenia", "c1": 0.728, "c2": 0.668, "c3": 0.872, "euga": 0.756}, {"land": "Italy", "c1": 0.763, "c2": 0.657, "c3": 0.864, "euga": 0.761}, {"land": "Lithuania", "c1": 0.734, "c2": 0.763, "c3": 0.804, "euga": 0.767}, {"land": "Portugal", "c1": 0.758, "c2": 0.679, "c3": 0.879, "euga": 0.772}, {"land": "France", "c1": 0.807, "c2": 0.73, "c3": 0.785, "euga": 0.774}, {"land": "Spain", "c1": 0.782, "c2": 0.718, "c3": 0.895, "euga": 0.798}, {"land": "Czechia", "c1": 0.784, "c2": 0.724, "c3": 0.892, "euga": 0.8}, {"land": "Austria", "c1": 0.762, "c2": 0.797, "c3": 0.922, "euga": 0.827}, {"land": "Luxembourg", "c1": 0.788, "c2": 0.823, "c3": 0.924, "euga": 0.845}, {"land": "Belgium", "c1": 0.833, "c2": 0.784, "c3": 0.921, "euga": 0.846}, {"land": "Ireland", "c1": 0.827, "c2": 0.807, "c3": 0.911, "euga": 0.848}, {"land": "Netherlands", "c1": 0.798, "c2": 0.834, "c3": 0.921, "euga": 0.851}, {"land": "Germany", "c1": 0.806, "c2": 0.832, "c3": 0.926, "euga": 0.854}, {"land": "Estonia", "c1": 0.853, "c2": 0.815, "c3": 0.914, "euga": 0.861}, {"land": "Finland", "c1": 0.827, "c2": 0.867, "c3": 0.947, "euga": 0.881}, {"land": "Sweden", "c1": 0.861, "c2": 0.856, "c3": 0.932, "euga": 0.883}, {"land": "Denmark", "c1": 0.887, "c2": 0.899, "c3": 0.96, "euga": 0.915}], "2023": [{"land": "Hungary", "c1": 0.323, "c2": 0.509, "c3": 0.611, "euga": 0.481}, {"land": "Poland", "c1": 0.457, "c2": 0.643, "c3": 0.721, "euga": 0.607}, {"land": "Bulgaria", "c1": 0.58, "c2": 0.548, "c3": 0.724, "euga": 0.617}, {"land": "Romania", "c1": 0.503, "c2": 0.625, "c3": 0.752, "euga": 0.627}, {"land": "Greece", "c1": 0.573, "c2": 0.598, "c3": 0.742, "euga": 0.638}, {"land": "Croatia", "c1": 0.628, "c2": 0.605, "c3": 0.757, "euga": 0.663}, {"land": "Malta", "c1": 0.623, "c2": 0.671, "c3": 0.787, "euga": 0.694}, {"land": "Cyprus", "c1": 0.643, "c2": 0.671, "c3": 0.859, "euga": 0.724}, {"land": "Slovenia", "c1": 0.659, "c2": 0.678, "c3": 0.877, "euga": 0.738}, {"land": "Italy", "c1": 0.727, "c2": 0.657, "c3": 0.864, "euga": 0.749}, {"land": "Latvia", "c1": 0.762, "c2": 0.721, "c3": 0.802, "euga": 0.762}, {"land": "Lithuania", "c1": 0.724, "c2": 0.765, "c3": 0.809, "euga": 0.766}, {"land": "Portugal", "c1": 0.757, "c2": 0.672, "c3": 0.88, "euga": 0.77}, {"land": "France", "c1": 0.807, "c2": 0.726, "c3": 0.787, "euga": 0.773}, {"land": "Spain", "c1": 0.759, "c2": 0.712, "c3": 0.893, "euga": 0.788}, {"land": "Czechia", "c1": 0.796, "c2": 0.726, "c3": 0.89, "euga": 0.804}, {"land": "Austria", "c1": 0.775, "c2": 0.794, "c3": 0.92, "euga": 0.83}, {"land": "Belgium", "c1": 0.812, "c2": 0.776, "c3": 0.92, "euga": 0.836}, {"land": "Netherlands", "c1": 0.791, "c2": 0.832, "c3": 0.918, "euga": 0.847}, {"land": "Luxembourg", "c1": 0.789, "c2": 0.83, "c3": 0.926, "euga": 0.849}, {"land": "Ireland", "c1": 0.829, "c2": 0.81, "c3": 0.912, "euga": 0.85}, {"land": "Germany", "c1": 0.812, "c2": 0.831, "c3": 0.929, "euga": 0.857}, {"land": "Estonia", "c1": 0.845, "c2": 0.815, "c3": 0.913, "euga": 0.858}, {"land": "Finland", "c1": 0.812, "c2": 0.871, "c3": 0.95, "euga": 0.878}, {"land": "Sweden", "c1": 0.849, "c2": 0.852, "c3": 0.934, "euga": 0.878}, {"land": "Denmark", "c1": 0.884, "c2": 0.896, "c3": 0.962, "euga": 0.914}], "2024": [{"land": "Hungary", "c1": 0.325, "c2": 0.509, "c3": 0.604, "euga": 0.479}, {"land": "Bulgaria", "c1": 0.533, "c2": 0.551, "c3": 0.72, "euga": 0.601}, {"land": "Romania", "c1": 0.449, "c2": 0.613, "c3": 0.751, "euga": 0.605}, {"land": "Greece", "c1": 0.565, "c2": 0.596, "c3": 0.736, "euga": 0.633}, {"land": "Croatia", "c1": 0.607, "c2": 0.601, "c3": 0.757, "euga": 0.655}, {"land": "Poland", "c1": 0.613, "c2": 0.664, "c3": 0.73, "euga": 0.669}, {"land": "Malta", "c1": 0.621, "c2": 0.662, "c3": 0.785, "euga": 0.689}, {"land": "Cyprus", "c1": 0.653, "c2": 0.664, "c3": 0.861, "euga": 0.726}, {"land": "Slovenia", "c1": 0.63, "c2": 0.678, "c3": 0.883, "euga": 0.73}, {"land": "Italy", "c1": 0.687, "c2": 0.651, "c3": 0.86, "euga": 0.733}, {"land": "Latvia", "c1": 0.759, "c2": 0.728, "c3": 0.801, "euga": 0.763}, {"land": "Portugal", "c1": 0.754, "c2": 0.668, "c3": 0.873, "euga": 0.765}, {"land": "France", "c1": 0.8, "c2": 0.722, "c3": 0.787, "euga": 0.77}, {"land": "Lithuania", "c1": 0.732, "c2": 0.772, "c3": 0.81, "euga": 0.771}, {"land": "Spain", "c1": 0.743, "c2": 0.705, "c3": 0.891, "euga": 0.78}, {"land": "Czechia", "c1": 0.811, "c2": 0.733, "c3": 0.893, "euga": 0.812}, {"land": "Austria", "c1": 0.762, "c2": 0.789, "c3": 0.913, "euga": 0.821}, {"land": "Belgium", "c1": 0.81, "c2": 0.773, "c3": 0.92, "euga": 0.834}, {"land": "Netherlands", "c1": 0.766, "c2": 0.826, "c3": 0.914, "euga": 0.835}, {"land": "Luxembourg", "c1": 0.781, "c2": 0.827, "c3": 0.924, "euga": 0.844}, {"land": "Germany", "c1": 0.778, "c2": 0.831, "c3": 0.93, "euga": 0.846}, {"land": "Ireland", "c1": 0.83, "c2": 0.818, "c3": 0.92, "euga": 0.856}, {"land": "Estonia", "c1": 0.848, "c2": 0.816, "c3": 0.912, "euga": 0.859}, {"land": "Finland", "c1": 0.782, "c2": 0.872, "c3": 0.947, "euga": 0.867}, {"land": "Sweden", "c1": 0.846, "c2": 0.854, "c3": 0.937, "euga": 0.879}, {"land": "Denmark", "c1": 0.885, "c2": 0.897, "c3": 0.958, "euga": 0.913}], "2025": [{"land": "Hungary", "c1": 0.315, "c2": 0.5, "c3": 0.592, "euga": 0.469}, {"land": "Bulgaria", "c1": 0.499, "c2": 0.546, "c3": 0.716, "euga": 0.587}, {"land": "Romania", "c1": 0.464, "c2": 0.606, "c3": 0.748, "euga": 0.606}, {"land": "Greece", "c1": 0.568, "c2": 0.592, "c3": 0.733, "euga": 0.631}, {"land": "Croatia", "c1": 0.593, "c2": 0.597, "c3": 0.756, "euga": 0.649}, {"land": "Poland", "c1": 0.645, "c2": 0.665, "c3": 0.738, "euga": 0.683}, {"land": "Italy", "c1": 0.642, "c2": 0.648, "c3": 0.774, "euga": 0.688}, {"land": "Cyprus", "c1": 0.664, "c2": 0.666, "c3": 0.78, "euga": 0.703}, {"land": "Slovenia", "c1": 0.589, "c2": 0.672, "c3": 0.881, "euga": 0.714}, {"land": "Malta", "c1": 0.621, "c2": 0.659, "c3": 0.871, "euga": 0.717}, {"land": "Portugal", "c1": 0.717, "c2": 0.664, "c3": 0.871, "euga": 0.751}, {"land": "Latvia", "c1": 0.751, "c2": 0.729, "c3": 0.8, "euga": 0.76}, {"land": "Lithuania", "c1": 0.712, "c2": 0.772, "c3": 0.811, "euga": 0.765}, {"land": "France", "c1": 0.8, "c2": 0.722, "c3": 0.783, "euga": 0.769}, {"land": "Spain", "c1": 0.741, "c2": 0.701, "c3": 0.888, "euga": 0.777}, {"land": "Czechia", "c1": 0.794, "c2": 0.733, "c3": 0.892, "euga": 0.806}, {"land": "Austria", "c1": 0.757, "c2": 0.789, "c3": 0.914, "euga": 0.82}, {"land": "Belgium", "c1": 0.794, "c2": 0.773, "c3": 0.92, "euga": 0.829}, {"land": "Netherlands", "c1": 0.774, "c2": 0.821, "c3": 0.91, "euga": 0.835}, {"land": "Luxembourg", "c1": 0.777, "c2": 0.827, "c3": 0.925, "euga": 0.843}, {"land": "Germany", "c1": 0.782, "c2": 0.829, "c3": 0.931, "euga": 0.847}, {"land": "Estonia", "c1": 0.837, "c2": 0.818, "c3": 0.912, "euga": 0.856}, {"land": "Ireland", "c1": 0.822, "c2": 0.82, "c3": 0.925, "euga": 0.856}, {"land": "Finland", "c1": 0.808, "c2": 0.867, "c3": 0.948, "euga": 0.874}, {"land": "Sweden", "c1": 0.853, "c2": 0.85, "c3": 0.935, "euga": 0.879}, {"land": "Denmark", "c1": 0.884, "c2": 0.896, "c3": 0.957, "euga": 0.912}]};
+  var YEARS = Object.keys(DATA).sort(function(a,b){return a-b;});
+  var LASTY = YEARS[YEARS.length-1];
+  var LOOKBACK = 5;
+  var BUILT = ["Hungary","Denmark","Poland","Romania","Greece","Italy","Slovenia","Bulgaria","Croatia","Portugal","Spain","Cyprus","Malta","France","Austria","Czechia","Belgium","Netherlands","Germany","Finland","Sweden","Latvia","Lithuania","Luxembourg","Estonia","Ireland"];
+
+  // ---------------------------------------------------------------- helpers
+  function scoreClass(v){ return v < 0.60 ? 'score-bad' : (v < 0.75 ? 'score-amber' : 'score-good'); }
+  function bandLabel(v){ return v < 0.60 ? 'High concern' : (v < 0.75 ? 'Moderate concern' : 'Low concern'); }
+  function fmt(v){ return v.toFixed(2); }
+  function fmtPrecise(v){ return v.toFixed(3); }
+  function deltaClass(d){ return d < -0.005 ? 'delta-down' : (d > 0.005 ? 'delta-up' : 'delta-flat'); }
+  function deltaArrow(d){ return d < -0.005 ? '▼' : (d > 0.005 ? '▲' : '≈'); }
+  function deltaText(d){ return (d>=0?'+':'')+d.toFixed(3); }
+  function findRow(year, land){
+    var rows = DATA[year] || [];
+    for (var i=0;i<rows.length;i++){ if (rows[i].land===land) return rows[i]; }
+    return null;
+  }
+  function get5yBaseline(land){
+    var target = (parseInt(LASTY,10)-LOOKBACK).toString();
+    var row = findRow(target, land);
+    if (row) return { year: target, row: row, fallback:false };
+    for (var i=0;i<YEARS.length;i++){
+      var r = findRow(YEARS[i], land);
+      if (r) return { year: YEARS[i], row: r, fallback:true };
+    }
+    return null;
+  }
+
+  // ---------------------------------------------------------------- TILES
+  function buildTiles(){
+    var rowsLast = DATA[LASTY].slice().sort(function(a,b){ return a.euga - b.euga; }); // highest concern (lowest score) first
+    var grid = document.getElementById('tilegrid');
+    var html = '';
+    rowsLast.forEach(function(d){
+      var hasDossier = DOSSIERS.hasOwnProperty(d.land);
+      var base = get5yBaseline(d.land);
+      var trendTxt = '';
+      if (base){
+        var delta = d.euga - base.row.euga;
+        var label = base.fallback ? ('since '+base.year+' (data start)') : ('over last 5y ('+base.year+'\u2013'+LASTY+')');
+        trendTxt = '<span class="'+deltaClass(delta)+'">'+deltaArrow(delta)+' '+deltaText(delta)+' '+label+'</span>';
+      }
+      html += '<div class="tile '+(hasDossier?'clickable':'disabled')+'" '+(hasDossier?('onclick="showDossier(\''+d.land+'\')"'):'')+'>'
+            + '<div class="tname">'+d.land+'</div>'
+            + '<div class="tband '+scoreClass(d.euga)+'">'+bandLabel(d.euga)+'</div>'
+            + '<div class="tscore '+scoreClass(d.euga)+'">'+fmt(d.euga)+'</div>'
+            + '<div class="ttrend">'+trendTxt+'</div>'
+            + '</div>';
+    });
+    grid.innerHTML = html;
+  }
+
+  // ---------------------------------------------------------------- COMPARISON DOTPLOT (existing code, reused)
+  var domLo=0.2, domHi=1.0, xPlot0=158, xPlot1=648, rowH=23, topPad=30, botPad=34, svgW=700;
+  function X(v){ return xPlot0 + (v-domLo)/(domHi-domLo)*(xPlot1-xPlot0); }
+  function renderCmp(yearIdx){
+    var year = YEARS[yearIdx];
+    document.getElementById('cmp-year-label').textContent = year;
+    var rows = DATA[year];
+    var svgH = topPad + rows.length*rowH + botPad;
+    var parts = [];
+    parts.push('<svg viewBox="0 0 '+svgW+' '+svgH+'" xmlns="http://www.w3.org/2000/svg" role="img" width="100%" style="display:block">');
+    var gridVals=[0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0];
+    gridVals.forEach(function(gv){
+      var gx=X(gv).toFixed(1);
+      parts.push('<line x1="'+gx+'" y1="'+(topPad-4)+'" x2="'+gx+'" y2="'+(topPad+rows.length*rowH)+'" stroke="#e6e5e0" stroke-width="1"/>');
+      parts.push('<text x="'+gx+'" y="'+(topPad+rows.length*rowH+16)+'" font-size="10" fill="#98968f" text-anchor="middle">'+gv.toFixed(1)+'</text>');
+    });
+    var tx=X(0.60).toFixed(1);
+    parts.push('<line x1="'+tx+'" y1="'+(topPad-8)+'" x2="'+tx+'" y2="'+(topPad+rows.length*rowH+2)+'" stroke="#a32d2d" stroke-width="1.3" stroke-dasharray="4,3"/>');
+    parts.push('<text x="'+tx+'" y="'+(topPad-12)+'" font-size="10" fill="#a32d2d" text-anchor="middle">threshold 0.60</text>');
+    rows.forEach(function(d,i){
+      var cy = topPad + i*rowH + rowH/2;
+      var vals=[d.c1,d.c2,d.c3];
+      var xr0=X(Math.min.apply(null,vals)).toFixed(1), xr1=X(Math.max.apply(null,vals)).toFixed(1);
+      parts.push('<text x="4" y="'+(cy+4).toFixed(1)+'" font-size="11.5" fill="#2c2c2a">'+d.land+'</text>');
+      parts.push('<line x1="'+xr0+'" y1="'+cy.toFixed(1)+'" x2="'+xr1+'" y2="'+cy.toFixed(1)+'" stroke="#c9c8c1" stroke-width="1.4"/>');
+      parts.push('<circle cx="'+X(d.c1).toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="4" fill="#2a78d6"/>');
+      parts.push('<circle cx="'+X(d.c2).toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="4" fill="#eb6834"/>');
+      parts.push('<circle cx="'+X(d.c3).toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="4" fill="#1baf7a"/>');
+      var ex=X(d.euga);
+      parts.push('<rect x="'+(ex-4.4).toFixed(1)+'" y="'+(cy-4.4).toFixed(1)+'" width="8.8" height="8.8" fill="#3a3a38" transform="rotate(45 '+ex.toFixed(1)+' '+cy.toFixed(1)+')"/>');
+    });
+    parts.push('</svg>');
+    document.getElementById('cmp-svg-wrap').innerHTML = parts.join('');
+  }
+
+  // ---------------------------------------------------------------- COUNTRY TREND SVG (dynamic scale)
+  function renderTrend(land){
+    var pts = YEARS.map(function(y){ return {y:y, r: findRow(y,land)}; }).filter(function(p){ return p.r; });
+    var vals = [];
+    pts.forEach(function(p){ vals.push(p.r.c1, p.r.c2, p.r.c3, p.r.euga); });
+    var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
+    var pad = Math.max((max-min)*0.15, 0.02);
+    var lo = Math.max(0, min-pad), hi = Math.min(1, max+pad);
+    if (hi-lo < 0.12){ var mid=(hi+lo)/2; lo=Math.max(0,mid-0.06); hi=Math.min(1,mid+0.06); }
+
+    var W=700, topPad=14, botPad=26, leftPad=36, rightPad=10, H=220;
+    function Y(v){ return topPad + (1 - (v-lo)/(hi-lo)) * (H-topPad-botPad); }
+    function Xp(i){ return leftPad + i*((W-leftPad-rightPad)/(pts.length-1)); }
+    var parts=[];
+    parts.push('<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" width="100%" style="display:block">');
+    var nTicks = 5;
+    for (var t=0;t<nTicks;t++){
+      var gv = lo + (hi-lo)*t/(nTicks-1);
+      var gy=Y(gv).toFixed(1);
+      parts.push('<line x1="'+leftPad+'" y1="'+gy+'" x2="'+(W-rightPad)+'" y2="'+gy+'" stroke="#e6e5e0" stroke-width="1"/>');
+      parts.push('<text x="4" y="'+(parseFloat(gy)+3.5)+'" font-size="9.5" fill="#98968f">'+gv.toFixed(2)+'</text>');
+    }
+    if (0.60 >= lo && 0.60 <= hi){
+      var ty = Y(0.60).toFixed(1);
+      parts.push('<line x1="'+leftPad+'" y1="'+ty+'" x2="'+(W-rightPad)+'" y2="'+ty+'" stroke="#a32d2d" stroke-width="1.2" stroke-dasharray="4,3"/>');
+      parts.push('<text x="'+(W-rightPad)+'" y="'+(parseFloat(ty)-4)+'" font-size="9" fill="#a32d2d" text-anchor="end">threshold 0.60</text>');
+    }
+    pts.forEach(function(p,i){
+      parts.push('<text x="'+Xp(i).toFixed(1)+'" y="'+(H-8)+'" font-size="9" fill="#98968f" text-anchor="middle">'+p.y+'</text>');
+    });
+    function line(key, color, width){
+      var d = pts.map(function(p,i){ return (i===0?'M':'L')+Xp(i).toFixed(1)+','+Y(p.r[key]).toFixed(1); }).join(' ');
+      parts.push('<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+width+'"/>');
+      pts.forEach(function(p,i){
+        if (key==='euga'){
+          var ex=Xp(i), ey=Y(p.r[key]);
+          parts.push('<rect x="'+(ex-3.6).toFixed(1)+'" y="'+(ey-3.6).toFixed(1)+'" width="7.2" height="7.2" fill="'+color+'" transform="rotate(45 '+ex.toFixed(1)+' '+ey.toFixed(1)+')"/>');
+        } else {
+          parts.push('<circle cx="'+Xp(i).toFixed(1)+'" cy="'+Y(p.r[key]).toFixed(1)+'" r="2.6" fill="'+color+'"/>');
+        }
+      });
+    }
+    line('c1','#2a78d6',1.4);
+    line('c2','#eb6834',1.4);
+    line('c3','#1baf7a',1.4);
+    line('euga','#3a3a38',2.2);
+    parts.push('<line id="hover-line" x1="0" y1="'+topPad+'" x2="0" y2="'+(H-botPad)+'" stroke="#2c2c2a" stroke-width="1" stroke-dasharray="3,3" opacity="0"/>');
+    ['c1','c2','c3','euga'].forEach(function(key){
+      parts.push('<circle id="hover-pt-'+key+'" r="5" fill="none" stroke="#2c2c2a" stroke-width="1.3" opacity="0"/>');
+    });
+    parts.push('</svg>');
+    var wrap = document.getElementById('d-trendsvg');
+    wrap.innerHTML = parts.join('');
+    document.getElementById('d-trendnote').textContent = 'Vertical axis scaled to this country\u2019s own data range (' + lo.toFixed(2) + '\u2013' + hi.toFixed(2) + ') to make year-on-year movement legible. Hover over the chart to see exact values per year. Dashed line: signal threshold 0.60, shown only when within range. Years without full coverage of all three components (2017) are not included in the dataset.';
+
+    // ---- hover interaction ----
+    var tooltip = document.createElement('div');
+    tooltip.className = 'trend-tooltip';
+    wrap.appendChild(tooltip);
+    var svgEl = wrap.querySelector('svg');
+    var hoverLine = svgEl.querySelector('#hover-line');
+    var hoverPts = {
+      c1: svgEl.querySelector('#hover-pt-c1'),
+      c2: svgEl.querySelector('#hover-pt-c2'),
+      c3: svgEl.querySelector('#hover-pt-c3'),
+      euga: svgEl.querySelector('#hover-pt-euga')
+    };
+    function showAt(idx){
+      var p = pts[idx];
+      var px = Xp(idx);
+      hoverLine.setAttribute('x1', px.toFixed(1));
+      hoverLine.setAttribute('x2', px.toFixed(1));
+      hoverLine.setAttribute('opacity', '1');
+      ['c1','c2','c3','euga'].forEach(function(key){
+        hoverPts[key].setAttribute('cx', px.toFixed(1));
+        hoverPts[key].setAttribute('cy', Y(p.r[key]).toFixed(1));
+        hoverPts[key].setAttribute('opacity', '1');
+      });
+      tooltip.innerHTML =
+          '<div class="tt-year">'+p.y+'</div>'
+        + '<div class="tt-row"><span class="tt-dot" style="background:#2a78d6"></span>C1 democracy<b>'+p.r.c1.toFixed(3)+'</b></div>'
+        + '<div class="tt-row"><span class="tt-dot" style="background:#eb6834"></span>C2 rule of law<b>'+p.r.c2.toFixed(3)+'</b></div>'
+        + '<div class="tt-row"><span class="tt-dot" style="background:#1baf7a"></span>C3 fund. rights<b>'+p.r.c3.toFixed(3)+'</b></div>'
+        + '<div class="tt-row"><span class="tt-dot" style="background:#3a3a38"></span>EUGA score<b>'+p.r.euga.toFixed(3)+'</b></div>';
+      tooltip.style.display = 'block';
+      var wrapRect = wrap.getBoundingClientRect();
+      var xFrac = px / W;
+      var leftPx = xFrac * wrapRect.width;
+      var tw = 168;
+      var left = leftPx + 14;
+      if (left + tw > wrapRect.width) left = leftPx - tw - 14;
+      tooltip.style.left = Math.max(0,left) + 'px';
+      var yFrac = Y(p.r.euga) / H;
+      var top = yFrac * (wrapRect.height) - 70;
+      tooltip.style.top = Math.max(0, top) + 'px';
+    }
+    function hideHover(){
+      hoverLine.setAttribute('opacity', '0');
+      ['c1','c2','c3','euga'].forEach(function(key){ hoverPts[key].setAttribute('opacity', '0'); });
+      tooltip.style.display = 'none';
+    }
+    function nearestIdx(clientX){
+      var rect = svgEl.getBoundingClientRect();
+      var mx = (clientX - rect.left) * (W / rect.width);
+      var idx = 0, best = Infinity;
+      pts.forEach(function(p,i){ var d = Math.abs(Xp(i)-mx); if (d<best){best=d; idx=i;} });
+      return idx;
+    }
+    svgEl.addEventListener('pointermove', function(e){ showAt(nearestIdx(e.clientX)); });
+    svgEl.addEventListener('pointerleave', hideHover);
+  }
+
+  // ---------------------------------------------------------------- QUALITATIVE CONTENT PER COUNTRY
+  var COMP_DESC = {
+    c1: "Measures the quality of the electoral and representative process: freedom and fairness of elections, media pluralism, space for political opposition and civil society (V-Dem Liberal Democracy Index).",
+    c2: "Measures the independence and effectiveness of the rule of law: judicial independence, absence of corruption, enforcement and access to justice (World Justice Project Rule of Law Index).",
+    c3: "Measures the protection of civil liberties: freedom of expression, freedom of association, protection against arbitrary state power and discrimination (Freedom House Civil Liberties, via Our World in Data)."
+  };
+  var COMP_LABEL = { c1: 'C1 \u2014 Democracy', c2: 'C2 \u2014 Rule of law', c3: 'C3 \u2014 Fundamental rights' };
+
+  var DOSSIERS = {
+    "Netherlands": {
+      qual: "Two governments and two general elections within about eighteen months \u2014 the collapse of the first PVV-involved cabinet in Dutch history, followed by a swing back to the centre.",
+      compNotes: {
+        c1: "Declined from 0.813 to 0.774 over the last five years, driven by a period of exceptional government instability spanning a record-length coalition formation and that coalition's collapse less than a year into office.",
+        c2: "Declined modestly (0.837 \u2192 0.821).",
+        c3: "Declined modestly (0.920 \u2192 0.910)."
+      },
+      context: [
+        "Over the 2020–2025 window the Netherlands' composite score fell from 0.857 to 0.835, with the largest movement in C1. The period covers the entry of the far-right Party for Freedom (PVV) into government for the first time in its history, and that government's collapse less than a year later.",
+        "Geert Wilders' PVV won the November 2023 general election, the largest party for the first time, but a 223-day coalition negotiation \u2014 one of the longest in Dutch history \u2014 produced a government led not by Wilders himself but by independent Dick Schoof, sworn in in July 2024, with the PVV, VVD, BBB and NSC as governing partners.",
+        "On 3 June 2025, Wilders withdrew the PVV from the coalition after his partners declined to adopt a ten-point asylum plan that included a freeze on asylum applications and a halt to the construction of reception centres, collapsing the government after less than a year and triggering new elections.",
+        "The October 2025 election produced a sharp reversal: the centrist, pro-EU D66 party under Rob Jetten tripled its seats to tie the PVV for first place, with the PVV losing eleven seats from its 2023 result. Commentators described the result as a rejection of the divisive politics that had characterised the collapsed coalition.",
+        "Coalition talks after the October 2025 election again took months; a D66-VVD-CDA minority government under Jetten was eventually sworn in on 23 February 2026 \u2014 the Netherlands' first minority government in decades, and one falling almost entirely outside the measurement window covered by this dataset."
+      ],
+      flag: {
+        title: "Government change falls almost entirely after the measurement period",
+        text: "The October 2025 election and the resulting Jetten government (sworn in 23 February 2026) fall at or after the edge of the 2025 measurement year. The C1 decline reported here substantially reflects the PVV-led coalition's turbulent 2024\u20132025 tenure rather than the centrist correction that followed; this will only become visible in a future data update."
+      },
+      sources: [
+        ["BBC, 'Dutch government collapses after far-right leader quits coalition'", "News reporting", "med"],
+        ["CNN, reporting on the June 2025 coalition collapse", "News reporting", "med"],
+        ["Al Jazeera, 'Netherlands centrist party wins big in election as far right loses support'", "News reporting", "med"],
+        ["Reuters, 'New Dutch PM Jetten faces uphill task as minority government installed'", "News reporting", "med"],
+        ["Wikipedia, '2025\u20132026 Dutch cabinet formation' (cross-referenced against primary reporting)", "Reference summary", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data through measurement year 2025."
+    },
+    "Germany": {
+      qual: "The collapse of the three-party 'traffic light' coalition and a snap election that delivered the far-right AfD its strongest result since the Second World War, alongside a contested breach of the mainstream parties' 'firewall' against cooperating with it.",
+      compNotes: {
+        c1: "Declined from 0.821 to 0.782 over the last five years, one of the larger five-year declines among the higher-scoring countries in the dataset, concentrated around the 2024\u20132025 coalition collapse and snap election.",
+        c2: "Essentially unchanged, marginally lower (0.834 \u2192 0.829).",
+        c3: "Essentially unchanged, marginally higher (0.926 \u2192 0.931)."
+      },
+      context: [
+        "Over the 2020–2025 window Germany's composite score fell from 0.860 to 0.847, with the decline concentrated in C1. The proximate cause is the collapse of Chancellor Olaf Scholz's three-party 'traffic light' coalition (SPD, Greens, FDP) in November 2024 and the polarised snap election that followed.",
+        "Scholz dismissed his finance minister, Christian Lindner of the FDP, on 6 November 2024 after a breakdown over budget policy, ending the coalition and triggering a snap election set for 23 February 2025.",
+        "In the weeks before that vote, opposition leader Friedrich Merz of the CDU/CSU broke with Germany's long-standing cross-party 'firewall' against cooperating with the far right, passing a non-binding motion on migration policy with support from the Alternative for Germany (AfD) on 29 January 2025. The move drew condemnation from former chancellor Angela Merkel and Scholz, and thousands of protesters gathered outside CDU headquarters in Berlin.",
+        "The February 2025 election delivered Merz's CDU/CSU a decisive win with around 29% of the vote, but the AfD finished second with roughly 20% \u2014 its strongest result and the strongest showing for a German far-right party since the Second World War \u2014 while Scholz's SPD recorded its worst post-war result at around 16%.",
+        "Merz went on to form a CDU/CSU-SPD grand coalition, but the debate over whether the 'firewall' against the AfD can hold has continued into 2026, with analysts noting the AfD's growing strength in state-level elections scheduled through the year as a live test of the strategy's durability."
+      ],
+      flag: null,
+      sources: [
+        ["CBS News, 'Conservatives win Germany election, far-right in second place, exit polls show'", "News reporting", "med"],
+        ["Al Jazeera, 'As Germany braces for election, backing the far-right AfD no longer a taboo'", "News analysis", "med"],
+        ["Journal of Democracy, 'Will Germany's Firewall Fall?'", "Academic commentary", "med"],
+        ["Clean Energy Wire, 'Coalition collapse: Tracking the path to Germany's snap elections'", "Reference timeline", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data through measurement year 2025."
+    },
+    "Finland": {
+      qual: "Finland's most right-wing government since the Second World War, formed in 2023 with the nationalist Finns Party as a governing partner, has pursued restrictive migration and citizenship reforms alongside a series of racism-related scandals.",
+      compNotes: {
+        c1: "Declined from 0.844 to 0.808 over the last five years, among the larger five-year declines in the higher-scoring group of countries, corresponding to the tenure of Prime Minister Petteri Orpo's coalition government since June 2023.",
+        c2: "Essentially unchanged, marginally lower (0.870 \u2192 0.867).",
+        c3: "Essentially unchanged, marginally lower (0.953 \u2192 0.948)."
+      },
+      context: [
+        "Over the 2020–2025 window Finland's composite score fell from 0.889 to 0.874, with the largest movement in C1. Nearly all of this period is covered by the coalition government formed in June 2023 between the centre-right National Coalition Party and the nationalist Finns Party, described by observers as Finland's most right-wing government since the Second World War.",
+        "Shortly after taking office, the government was engulfed in a series of scandals involving Finns Party figures, including resurfaced writings by Finance Minister Riikka Purra that expressed hostility toward the poor and contained violent imagery, and comments by an interior minister that echoed the 'Great Replacement' conspiracy theory; the government subsequently released a plan to combat racism and discrimination.",
+        "The government has pursued what researchers studying comparative citizenship policy describe as a restrictive 'paradigm shift' in naturalisation and migration law, tightening pathways to citizenship in ways expected to reduce and slow naturalisation \u2014 a shift researchers link directly to the Finns Party's influence within the coalition.",
+        "Commentators have also linked coalition austerity measures to rising poverty, citing government estimates that reforms would push tens of thousands of additional adults and children into poverty in 2024.",
+        "By late 2025 the Finns Party's own poll support had fallen well below its 2023 election result, and analysts were actively debating whether Finnish right-wing populism was in structural decline \u2014 a reminder that the C1 movement recorded here reflects a specific governing coalition's policies rather than a settled national trajectory."
+      ],
+      flag: null,
+      sources: [
+        ["Freedom House, Freedom in the World 2024 \u2014 Finland country report", "Quantitative index / classification", "high"],
+        ["Globalcit, 'Restrictive citizenship reform in Finland in three acts: a paradigm shift driven by the radical right?'", "Academic analysis", "high"],
+        ["Rosa-Luxemburg-Stiftung Brussels Office, 'The Collapse of Finnish Right-Wing populism?'", "Policy analysis", "med"],
+        ["Jacobin, 'Finland's Government Is Robin Hood in Reverse'", "News commentary", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data through measurement year 2025."
+    },
+    "Sweden": {
+      qual: "Since 2022, a minority government has governed with the parliamentary support of the nationalist Sweden Democrats, who have shaped migration and criminal-justice policy without formally joining the cabinet.",
+      compNotes: {
+        c1: "Declined from 0.868 to 0.853 over the last five years.",
+        c2: "Declined modestly (0.861 \u2192 0.850).",
+        c3: "Essentially unchanged, marginally higher (0.933 \u2192 0.935)."
+      },
+      context: [
+        "Over the 2020–2025 window Sweden's composite score fell from 0.887 to 0.879, a modest, broad-based decline. The period is defined by the 2022 Tid\u00f6 Agreement, under which the nationalist, anti-immigration Sweden Democrats (SD) agreed to support Prime Minister Ulf Kristersson's minority government from parliament without taking cabinet seats \u2014 while securing substantial influence over migration and criminal-justice policy in return.",
+        "The Sweden Democrats have used that influence to advance measures including proposals requiring public-sector workers to report undocumented individuals to authorities, a plan condemned by Swedish legal figures including the former Secretary General of the Swedish Bar Association.",
+        "Responding to a wave of gang-related shootings and bombings in 2023, the government has also pursued lowering the age of criminal responsibility from 15 to 13, an outlier position compared to most European countries, and has examined broadening the armed forces' role in domestic policing \u2014 a departure from Sweden's traditional restrictions on military involvement in law enforcement.",
+        "Swedish media reporting also revealed that the Sweden Democrats had operated an anonymous social-media 'troll factory' targeting political rivals and, at times, the government's own coalition partners; the government's response was described by analysts as notably muted given the scale of the revelations.",
+        "As with Finland's Finns Party, the Sweden Democrats underperformed in the 2024 European Parliament elections relative to national polling, suggesting the party's influence on domestic legislation has not translated into unchecked electoral momentum."
+      ],
+      flag: null,
+      sources: [
+        ["Kolegium Europy Wschodniej, 'In power and then out again? The prospects of the far right in Finland and Sweden'", "Policy analysis", "med"],
+        ["World Socialist Web Site, 'Sweden's right-wing government strengthens repressive state powers in the name of fighting crime'", "News commentary", "med"],
+        ["International Bar Association, 'The year of elections: The rise of Europe's far right'", "Professional association commentary", "high"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data through measurement year 2025."
+    },
+    "Latvia": {
+      qual: "A modest improvement across all three components, achieved alongside an unusually assertive — and disputed — policy of tightening residency requirements for Latvia's Russian-citizen population since 2022.",
+      compNotes: {
+        c1: "Modestly higher since Latvia's entry into the dataset in 2021 (0.740 \u2192 0.751).",
+        c2: "Rose over the same period (0.709 \u2192 0.729), consistent with continued anti-corruption enforcement by Latvia's Corruption Prevention and Combating Bureau (KNAB).",
+        c3: "Modestly higher (0.793 \u2192 0.800), even as the government pursued residency and language requirements affecting tens of thousands of Russian citizens \u2014 a policy whose proportionality has been directly tested before Latvia's own Constitutional Court."
+      },
+      context: [
+        "Latvia enters the EUGA dataset in 2021, so its five-year figure covers 2021\u20132025. Over that period the composite score rose modestly from 0.747 to 0.760, with gains across all three components. The clearest and most contested policy thread running through this period is Latvia's tightening of residency rules for its Russian-citizen population.",
+        "In September 2022, weeks after Russia's full-scale invasion of Ukraine, the Saeima amended the Immigration Law to require Russian and Belarusian citizens renewing permanent residence permits to demonstrate A2-level Latvian language proficiency, with permits otherwise voided from September 2023. The measure affected roughly 25,000 people, most of them Soviet-era settlers or their descendants who had opted for Russian rather than Latvian citizenship after independence.",
+        "Some affected residents challenged the law before Latvia's Constitutional Court on grounds including the right to private life; the case referenced a 2022 European Court of Human Rights ruling that had found Latvian citizenship pathways accessible enough not to be discriminatory, a precedent both sides invoked differently. Facing public pressure, parliament amended the law again in September 2023 to extend deadlines and soften some requirements.",
+        "By October 2025, roughly 30,000 people had gone through the process: about 2,600 left voluntarily, the large majority secured EU long-term residence status, and 841 people who had missed the final deadline were formally ordered to leave the country by mid-October, alongside a small number of prior national-security-related refusals (327 since 2022).",
+        "The government frames the policy as a proportionate integration and national-security measure in the context of the war in Ukraine; Latvian and international commentators have been split, with some describing it as a justified response to a genuine security threat and others warning of disproportionate impact on elderly long-term residents."
+      ],
+      flag: null,
+      sources: [
+        ["Latvian Ministry of Foreign Affairs, official statement on implementation of Immigration Law amendments", "Institutional document", "high"],
+        ["Freedom House, Nations in Transit \u2014 Latvia assessments", "Quantitative index / classification", "high"],
+        ["JURIST, 'EU dispatch: Latvia immigration law may force thousands of Russian residents who failed language exam to leave'", "News reporting", "med"],
+        ["CEPA, 'Latvia's Language Law \u2014 An Own Goal'", "Policy commentary", "med"],
+        ["RFE/RL, ''Express Your Loyalty': Russian Speakers In Latvia Face Language Test \u2014 Or Deportation'", "News reporting", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data. Latvia first appears in the dataset in 2021, so its 'five-year' change is calculated from 2021, its earliest available year."
+    },
+    "Lithuania": {
+      qual: "A sustained, legally unresolved conflict between Lithuania's border-security response to Belarus and its obligations under EU and human-rights law \u2014 including a CJEU ruling the government has openly declined to fully implement.",
+      compNotes: {
+        c1: "Declined modestly since Lithuania's entry into the dataset in 2021 (0.732 \u2192 0.712).",
+        c2: "Rose over the same period (0.752 \u2192 0.772), even as the government's border policy drew a formal adverse ruling from the EU's top court.",
+        c3: "Rose over the same period (0.790 \u2192 0.811), a positive movement that sits somewhat uneasily alongside pending landmark human-rights litigation over border pushbacks."
+      },
+      context: [
+        "Lithuania enters the EUGA dataset in 2021, so its five-year figure covers 2021\u20132025. Over that period the composite score rose modestly from 0.758 to 0.765, though C1 declined even as C2 and C3 improved \u2014 a genuinely mixed picture dominated by one long-running legal and policy conflict: Lithuania's border response to Belarus.",
+        "From mid-2021, Lithuania faced a sharp rise in irregular crossings from Belarus, which it declared a state of emergency over and characterised as a deliberate 'hybrid attack' by the Lukashenko government. Lithuania's parliament adopted measures allowing automatic detention of asylum seekers for up to a year and, from April 2023, explicitly legalised summary pushbacks at the border.",
+        "In June 2022, the Court of Justice of the EU had already ruled that Lithuania's state-of-emergency declaration did not exempt it from its obligation under EU law to guarantee access to the asylum procedure. Lithuania's interior minister responded that the government would not change course, arguing the country had a right to defend itself against a hybrid attack, and parliament proceeded months later to legislate pushbacks into law regardless.",
+        "That legislative choice is now the subject of a landmark case, C.O.C.G. and Others v. Lithuania, in which four Cuban asylum seekers allege they were repeatedly forced back into Belarus at gunpoint, including once in defiance of an interim order from the European Court of Human Rights. The case was referred to the ECtHR's Grand Chamber and heard in February 2025, with Amnesty International and the International Commission of Jurists intervening as third parties; a ruling was still pending at the end of the measurement period.",
+        "Lithuania's core domestic institutions \u2014 its Constitutional Court and ordinary judiciary \u2014 have not themselves been the subject of comparable rule-of-law criticism during this period, consistent with C2 improving even as the border-policy conflict continued unresolved."
+      ],
+      flag: null,
+      sources: [
+        ["Court of Justice of the EU, judgment C-72/22 PPU on Lithuania's state of emergency and asylum access, June 2022", "Legal ruling", "high"],
+        ["European Court of Human Rights, Grand Chamber hearing documents, C.O.C.G. and Others v. Lithuania", "Legal / institutional document", "high"],
+        ["International Commission of Jurists, third-party intervention statement, September 2024", "NGO statement", "med"],
+        ["Amnesty International, statement on the ECtHR pushback cases, February 2025", "NGO statement", "med"],
+        ["ECRE, reporting on the Lithuanian parliament's April 2023 pushback legislation", "NGO monitoring", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data. Lithuania first appears in the dataset in 2021, so its 'five-year' change is calculated from 2021, its earliest available year."
+    },
+    "Luxembourg": {
+      qual: "Essentially flat and consistently high across all three components, with the return to power of the CSV after a decade in opposition the main political development of this period.",
+      compNotes: {
+        c1: "Essentially unchanged since 2021 (0.785 \u2192 0.777).",
+        c2: "Essentially unchanged, marginally higher (0.824 \u2192 0.827).",
+        c3: "Essentially unchanged (0.926 \u2192 0.925)."
+      },
+      context: [
+        "Luxembourg enters the EUGA dataset in 2021, so its five-year figure covers 2021\u20132025. Over that period the composite score has been essentially flat (0.845 \u2192 0.843), consistent with Luxembourg's position as one of the more stable, higher-scoring entries in this dataset.",
+        "The main political development of the period was the October 2023 general election, which ended a decade of opposition for the Christian Social People's Party (CSV) \u2014 Luxembourg's dominant party for most of the post-war period, out of government only during 2013\u20132023. CSV leader Luc Frieden formed a new coalition with the Democratic Party (DP), taking office as prime minister in November 2023 with a narrow 41-seat majority in the 60-seat Chamber of Deputies.",
+        "Freedom House's assessments across this period note that Luxembourg's elections are consistently credible and its transfers of power peaceful, while also flagging a recurring, structural concern: close links between the country's large financial sector and its law-making elite, which Freedom House describes as 'regularly topics of concern for the opposition and outside observers' \u2014 a theme that traces back to the 2014 'LuxLeaks' revelations of confidential tax rulings for multinationals and the EU-level tax-transparency reforms that followed.",
+        "On media pluralism, Luxembourg's national broadcasting regulator introduced new campaign-reporting guidelines ahead of the 2023 elections; the Centre for Media Pluralism and Media Freedom notes these were applied without major complaint in the 2024 European elections, though Luxembourg still has no rules requiring parties or candidates to transparently report online campaign spending \u2014 an open gap in the country's media-governance framework rather than an active controversy."
+      ],
+      flag: null,
+      sources: [
+        ["Freedom House, Freedom in the World 2024 \u2014 Luxembourg country report", "Quantitative index / classification", "high"],
+        ["Centre for Media Pluralism and Media Freedom, Luxembourg country report", "Academic monitoring", "high"],
+        ["Wikipedia, '2023 Luxembourg general election' and 'Frieden-Bettel Government' (cross-referenced against primary reporting)", "Reference summary", "med"],
+        ["General background on the 2014 LuxLeaks revelations and their long-term EU policy consequences", "Reference / news summary", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data. Luxembourg first appears in the dataset in 2021, so its 'five-year' change is calculated from 2021, its earliest available year."
+    },
+    "Estonia": {
+      qual: "Stable and high-performing overall, with the most consistent policy theme being an accelerating effort since 2022 to phase out Russian-language education and Soviet-era symbols in response to the war in Ukraine.",
+      compNotes: {
+        c1: "Essentially unchanged, marginally lower (0.842 \u2192 0.837).",
+        c2: "Rose modestly over the last five years (0.805 \u2192 0.818).",
+        c3: "Essentially unchanged (0.909 \u2192 0.912), even as the government pursued a language-education reform that has drawn both domestic and Russian-government criticism."
+      },
+      context: [
+        "Over the 2020–2025 window Estonia's composite score edged up slightly, from 0.852 to 0.856, with a modest improvement in C2 the closest thing to a consistent trend. Estonia's most significant and sustained policy theme in this period is the accelerated integration of its Russian-speaking minority following Russia's 2022 invasion of Ukraine, centred on the city of Narva, where over 90% of residents are Russian speakers.",
+        "In August 2022, Prime Minister Kaja Kallas ordered the removal of Soviet-era war memorials, including a T-34 tank monument in Narva that Narva's own mayor initially resisted relocating; the government said the move was necessary to prevent Russia from using the monuments to stir up tensions, while critics, including some in Narva, said it risked erasing local history.",
+        "Later in 2022, the government decided that all state-funded education would transition fully from Russian to Estonian by 2030, with the change beginning in kindergartens and the first and fourth grades from the 2024\u20132025 school year. Researchers studying the reform's reception found that younger Russian-speaking Estonians were broadly, if grudgingly, accepting of its stated integration rationale, even where they disagreed with it.",
+        "Estonia has also blocked Russian state media from local broadcast and internet distribution since the invasion began, as part of a broader response the government frames as countering Kremlin propaganda aimed specifically at Russian-speaking Estonians. None of these measures has been the subject of adverse rulings from European courts of the kind seen in Lithuania's border-policy litigation, consistent with Estonia's stable C3 score over this period despite the intensity of the policy activity."
+      ],
+      flag: null,
+      sources: [
+        ["Freedom House, Freedom in the World \u2014 Estonia country reports", "Quantitative index / classification", "high"],
+        ["ZOiS (Centre for East European and International Studies), 'Security through Education: Estonia's Language Transition'", "Academic analysis", "high"],
+        ["Al Jazeera, 'Estonia removes Soviet-era statue amid tensions'", "News reporting", "med"],
+        ["Reporting on the phase-out of Russian-language schooling, 2024\u20132025 (AFP via various outlets)", "News reporting", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data through measurement year 2025."
+    },
+    "Ireland": {
+      qual: "A modest, mixed five-year picture, with C2 and C3 improving even as C1 declined slightly, against the backdrop of an intensifying national debate over migration and hate-speech legislation.",
+      compNotes: {
+        c1: "Declined modestly since Ireland's entry into the dataset in 2021 (0.833 \u2192 0.822).",
+        c2: "Rose over the same period (0.807 \u2192 0.820).",
+        c3: "Rose over the same period (0.910 \u2192 0.925), among the more positive five-year movements in this component across the dataset."
+      },
+      context: [
+        "Ireland enters the EUGA dataset in 2021, so its five-year figure covers 2021\u20132025. Over that period the composite score rose modestly from 0.850 to 0.856, with C2 and C3 improving even as C1 declined slightly \u2014 a genuinely mixed picture rather than a single clear trend.",
+        "Ireland saw a marked rise in migration-related social tension over this period, including riots in Dublin in November 2023 following a knife attack, followed by a wave of arson attacks on buildings earmarked to house asylum seekers in various towns during 2023 and 2024 \u2014 developments monitoring organisations linked to a broader rise in organised anti-immigration mobilisation, including online.",
+        "Parliament debated hate-speech legislation extensively during this period; a bill to criminalise incitement to hatred passed the lower house in 2023 but stalled in the Senate amid concerns, including from free-speech advocates, about how broadly 'protected characteristics' and incitement would be defined, and the government confirmed in 2024 that it would not proceed with the more contested incitement provisions in their original form.",
+        "Ireland's judiciary and broader rule-of-law institutions have not been the subject of significant EU Rule of Law Report concerns during this period, consistent with the improving C2 trend; Ireland continues to rank among the higher performers in the dataset overall despite the social tensions described above."
+      ],
+      flag: null,
+      sources: [
+        ["Reporting on the November 2023 Dublin riots and subsequent arson attacks on asylum accommodation (various outlets, 2023\u20132024)", "News reporting", "med"],
+        ["Reporting on the stalled Criminal Justice (Incitement to Violence or Hatred) Bill, 2023\u20132024", "News / legislative reporting", "med"],
+        ["European Commission, EU Rule of Law Report country chapters on Ireland", "Institutional document", "high"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data. Ireland first appears in the dataset in 2021, so its 'five-year' change is calculated from 2021, its earliest available year."
+    },
+    "France": {
+      qual: "The composite score is nearly flat over five years \u2014 but that stability masks the deepest, most sustained period of government instability in the Fifth Republic's history.",
+      compNotes: {
+        c1: "Essentially unchanged over the last five years (0.789 \u2192 0.800), a headline figure that sits uneasily alongside a period widely described as France's worst institutional crisis since 1962.",
+        c2: "Essentially flat (0.726 \u2192 0.722).",
+        c3: "Essentially unchanged (0.784 \u2192 0.783)."
+      },
+      context: [
+        "Over the 2020–2025 window France's composite score has been essentially flat (0.766 \u2192 0.769). This is one of the clearest illustrations in the dataset of why the qualitative context matters: a stable headline number sits on top of the most sustained period of government turnover and institutional deadlock France has experienced since the early years of the Fifth Republic.",
+        "President Emmanuel Macron's decision to dissolve the National Assembly and call snap elections in June 2024, following a poor showing for his party in the European Parliament elections, produced a deeply fragmented hung parliament split roughly three ways between his centrist bloc, the left-wing New Popular Front, and the far-right National Rally \u2014 none commanding a majority.",
+        "The resulting minority government under Michel Barnier collapsed on 4 December 2024, when the far-right and left-wing blocs combined to pass a no-confidence motion after Barnier used special constitutional powers (Article 49.3) to force through a contested budget \u2014 the first successful no-confidence vote to bring down a French government since 1962.",
+        "His successor, Fran\u00e7ois Bayrou, lasted roughly nine months before his own government fell in a confidence vote in September 2025 over a similarly unpopular austerity budget, having proposed measures including eliminating two public holidays to reduce a budget deficit that reached 6.1% of GDP in 2024.",
+        "The instability has direct institutional costs beyond the repeated government changes: a Le Monde survey found trust in the National Assembly falling to roughly 22% of the public, and analysts have noted the practical difficulty of passing an annual budget at all, with 2024 spending levels effectively rolled over into 2025 in the absence of a passed budget."
+      ],
+      flag: {
+        title: "Continued turmoil after the measurement period",
+        text: "Government instability continued past 2025, with a further prime ministerial change under the Lecornu government in October 2025. The pattern of short-lived governments and unresolved budget disputes that defined this period was still ongoing at the time of writing and may be reflected in future data updates even though the composite score itself has not moved."
+      },
+      sources: [
+        ["House of Commons Library, 'France: recent political developments and the 2024 National Assembly elections'", "Research briefing", "high"],
+        ["Chatham House, 'The collapse of Barnier's government shows bold choices are needed to end France's political deadlock'", "Policy analysis", "med"],
+        ["TIME, 'What Comes Next for France After Another Government Collapse'", "News analysis", "med"],
+        ["CNBC, reporting on the collapse of the Barnier government, December 2024", "News reporting", "med"],
+        ["Wikipedia, '2024\u20132025 French political crisis' (cross-referenced against primary reporting)", "Reference summary", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data through measurement year 2025. Continued government turnover in late 2025 is included as contextual development but is not reflected in the scores."
+    },
+    "Austria": {
+      qual: "The far-right FPÖ won a national election outright for the first time in 2024, but was excluded from government after an unprecedented coalition-formation process.",
+      compNotes: {
+        c1: "Declined over the last five years (0.786 \u2192 0.757), a period spanning the FPÖ's historic first-place finish in the September 2024 election and the record-length coalition negotiations that followed.",
+        c2: "Declined over the last five years (0.812 \u2192 0.789).",
+        c3: "Declined modestly (0.925 \u2192 0.914)."
+      },
+      context: [
+        "Over the 2020–2025 window Austria's composite score fell from 0.841 to 0.820, a modest but broad-based decline across all three components. The period's defining event is the far-right Freedom Party's (FPÖ) breakthrough in the September 2024 election.",
+        "The FPÖ, led by Herbert Kickl, won 28.8% of the vote \u2014 the first time in the party's history it finished first in a national election \u2014 ahead of the governing centre-right ÖVP on 26.3%. Despite this, the other major parties had ruled out entering government with Kickl during the campaign.",
+        "President Alexander Van der Bellen initially gave the ÖVP's Karl Nehammer, as leader of the second-placed party, the mandate to form a government; when talks with the Social Democrats failed, the mandate passed to Kickl in early 2025 \u2014 the first time an FPÖ leader had been asked to form a government \u2014 before those talks also collapsed.",
+        "The eventual outcome, sworn in after the longest coalition-formation process in modern Austrian history, was a three-party government of the ÖVP, Social Democrats (SPÖ) and liberal NEOS \u2014 the first such three-party federal coalition since 1945 \u2014 explicitly formed to exclude the election's largest party from power.",
+        "Commentators have drawn comparisons to Austria's 2000 coalition crisis, when an ÖVP-FPÖ government under Jörg Haider prompted EU diplomatic sanctions, and have noted that excluding the most-voted party, while defensible on liberal-democratic grounds, itself raises questions about representative politics that are not straightforward to resolve either way."
+      ],
+      flag: null,
+      sources: [
+        ["House of Commons Library, 'Austria: 2024 federal election'", "Research briefing", "high"],
+        ["West European Politics journal, 'From crisis governance to electoral normality and the longest coalition negotiations: the 2024 Austrian parliamentary election'", "Academic analysis", "high"],
+        ["Review of Democracy (CEU), 'The Radical Right Has Won the Election in Austria, But A Centrist Coalition Will Govern'", "Academic commentary", "med"],
+        ["IACL-IADC Blog, 'The 2024 Elections to the Austrian National Council'", "Academic legal commentary", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data through measurement year 2025."
+    },
+    "Czechia": {
+      qual: "Five years of gradual improvement under a pro-EU government were followed, at the very end of the measurement window, by a decisive election win for a populist, Eurosceptic-leaning coalition.",
+      compNotes: {
+        c1: "Rose from 0.709 to 0.794 over the last five years, one of the larger five-year gains in the dataset, corresponding closely to the tenure of the pro-European coalition government led by Petr Fiala (2021\u20132025).",
+        c2: "Modestly higher over the last five years (0.723 \u2192 0.733).",
+        c3: "Essentially unchanged, marginally lower (0.895 \u2192 0.892), among the highest fundamental-rights scores in the dataset."
+      },
+      context: [
+        "Over the 2020–2025 window Czechia's composite score rose from 0.776 to 0.806, one of the larger five-year gains in the dataset, driven mainly by C1. The improvement covers almost exactly the term of the pro-EU, pro-Western coalition government led by Petr Fiala, which governed from December 2021 until October 2025.",
+        "Czechia's president throughout most of this period, Petr Pavel, elected in January 2023 after defeating populist former prime minister Andrej Babi\u0161, was widely seen as reinforcing the country's pro-Western institutional orientation.",
+        "The picture shifted at the very end of the measurement window: on 3\u20134 October 2025, Babi\u0161's ANO movement won a decisive election victory with over 34% of the vote, defeating Fiala's governing coalition. Analysts described the outcome as consistent with the election being free and fair, while also noting concerns about ANO's anti-pluralist tendencies and Babi\u0161's own past conflict-of-interest disputes over EU subsidies received by his business empire.",
+        "Babi\u0161 formed a coalition with the anti-EU-leaning Freedom and Direct Democracy (SPD) party and the smaller Motorists movement, sworn in on 15 December 2025 \u2014 though the coalition agreement explicitly ruled out SPD's earlier calls for referendums on leaving the EU and NATO.",
+        "Because the October 2025 election falls within, but very late in, the 2025 measurement year, most of its institutional consequences will only become visible in future data updates; the C1 gain reported for 2025 substantially reflects the outgoing Fiala government's final year in office rather than the incoming administration."
+      ],
+      flag: {
+        title: "Development at the edge of the measurement period",
+        text: "The Babi\u0161-led coalition, including the eurosceptic SPD and Motorists parties, was formally sworn in on 15 December 2025 \u2014 within the 2025 measurement year but after most of the year's institutional activity. Analysts flag a meaningful risk of a reversal in the positive C1 trend reported here as the new government's policies take effect; this will only be visible in the next data update."
+      },
+      sources: [
+        ["LSE European Politics and Policy blog, 'The 2025 Czech election \u2013 Andrej Babi\u0161's Pyrrhic victory'", "Academic commentary", "med"],
+        ["OSW Centre for Eastern Studies, 'Babi\u0161's new government: Czechia first'", "Policy analysis", "med"],
+        ["Democratic Erosion, 'ANO 2011, Andrej Babi\u0161, and Implications of the Fall 2025 Election on Czech Democracy'", "Academic commentary", "med"],
+        ["Wikipedia, '2025 Czech parliamentary election' (cross-referenced against primary reporting)", "Reference summary", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data through measurement year 2025. The December 2025 change of government is included as contextual development but arrives too late to be reflected in the C1 gain reported here."
+    },
+    "Belgium": {
+      qual: "A modest, broad-based decline accompanying the longest and most fragmented coalition-formation process in the country's recent history, and the first Flemish-nationalist prime minister.",
+      compNotes: {
+        c1: "Declined over the last five years (0.826 \u2192 0.794), coinciding with the eight-month formation process that followed the June 2024 federal election.",
+        c2: "Essentially unchanged, marginally lower (0.780 \u2192 0.773).",
+        c3: "Essentially unchanged (0.919 \u2192 0.920)."
+      },
+      context: [
+        "Over the 2020–2025 window Belgium's composite score fell from 0.842 to 0.829, with most of the movement in C1. The period's central story is less a single crisis than a structural one: Belgium's fragmented, multi-party, multi-level political system took eight months to form a federal government after the June 2024 election, on top of a separate, much longer regional deadlock.",
+        "The June 2024 federal election saw gains for the Flemish nationalist N-VA and the far-right Vlaams Belang, while the Flemish liberals (Open Vld) and Francophone Socialists (PS) both suffered heavy losses that pushed them into opposition after years in government.",
+        "The resulting 'Arizona coalition' \u2014 named for the five parties' colours matching the Arizona state flag \u2014 was sworn in on 3 February 2025 under Bart De Wever, leader of the N-VA, who became Belgium's first Flemish-nationalist prime minister. Commentators noted that while the coalition excluded the far-right Vlaams Belang, the long-standing taboo on cooperating with it had already begun to fray at the local level.",
+        "A separate and more severe deadlock affected the Brussels regional government, which by mid-2026 had gone over 600 days without being formed \u2014 matching the record set during the 2010\u20132011 federal deadlock \u2014 forcing the heavily indebted regional government to freeze subsidies to NGOs and cultural organisations and prompting a bank to withdraw a \u20ac500 million credit line.",
+        "None of this reflects a rule-of-law crisis in the sense seen elsewhere in this dataset; the reporting reviewed here frames it as a structural feature of an unusually fragmented, multi-layered federal system under growing electoral pressure from the political extremes, rather than a deliberate weakening of institutions."
+      ],
+      flag: null,
+      sources: [
+        ["Wikipedia / Belgian federal government formation records, 'De Wever government' and '2024 Belgian federal election'", "Reference / legislative record", "med"],
+        ["Belga News Agency, 'Belgium ends political deadlock: Agreement on new federal government is near'", "News reporting", "med"],
+        ["Hanns Seidel Foundation Europe, 'A new federal government for Belgium: Arizona follows Vivaldi'", "Policy analysis", "med"],
+        ["Reporting on the Brussels regional deadlock, 2026 (Belgian media)", "News reporting", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data through measurement year 2025."
+    },
+    "Portugal": {
+      qual: "Chronic government instability driven by successive corruption scandals \u2014 three governments and three elections since 2022 \u2014 coinciding with the breakthrough of a far-right party into mainstream politics.",
+      compNotes: {
+        c1: "Declined from 0.806 to 0.717 over the last five years, one of the larger five-year declines in the dataset. The fall coincides with a cycle of scandal-driven government collapses and snap elections that has repeatedly disrupted Portugal's traditionally stable two-party system.",
+        c2: "Declined moderately over the last five years (0.694 \u2192 0.664), consistent with the recurring nature of the corruption allegations that have twice brought down a sitting government.",
+        c3: "Declined modestly (0.890 \u2192 0.871)."
+      },
+      context: [
+        "Over the 2020\u20132025 window Portugal's composite score fell from 0.796 to 0.751, with the largest movement in C1. The proximate driver across this period is not a single event but a recurring pattern: three governments have now fallen within three years, each time over corruption-adjacent allegations.",
+        "In November 2023, Socialist Prime Minister Ant\u00f3nio Costa resigned after nearly a decade in office when a member of his staff came under investigation in a corruption probe touching his government; the resulting March 2024 snap election brought Lu\u00eds Montenegro's centre-right Democratic Alliance to power at the head of a minority government.",
+        "In March 2025, Montenegro's own government fell after losing a confidence vote, triggered by a scandal over potential conflicts of interest linked to Spinumviva, a consultancy firm he had founded; an investigation by the newspaper Expresso found some of the firm's clients held government contracts worth over \u20ac100 million a year during his time in office.",
+        "The resulting May 2025 snap election \u2014 Portugal's third in three years \u2014 saw the far-right Chega party overtake the Socialists to become the main opposition, ending five decades of two-party dominance and reflecting, according to analysts, a broader erosion of public trust fuelled by the recurring scandals rather than any single one.",
+        "Montenegro was re-elected with a slightly stronger minority government, but the basic institutional pattern \u2014 the same underlying dynamics producing two government collapses in barely eighteen months \u2014 remains unresolved going into the second half of the decade."
+      ],
+      flag: null,
+      sources: [
+        ["World Politics Review, 'Portugal's Political Instability May Be Its New Normal'", "Policy analysis", "med"],
+        ["Al Jazeera, ''New paradigm': A fractured Portugal votes again, amid corruption cloud'", "News reporting", "med"],
+        ["CIVICUS Lens, 'Portugal's far-right surge'", "NGO analysis", "med"],
+        ["West European Politics journal, 'The irresistible populist force: the Portuguese 2025 snap elections'", "Academic analysis", "high"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data through measurement year 2025."
+    },
+    "Spain": {
+      qual: "A six-year deadlock in renewing the judiciary's governing body, resolved in 2024, alongside a contested amnesty law for Catalan separatists still before the Constitutional Court.",
+      compNotes: {
+        c1: "Declined moderately over the last five years (0.786 \u2192 0.741), a period that included a highly contested amnesty law for Catalan separatists and parliamentary investigative committees into the judiciary that judges' associations said created new pressure on judicial actors.",
+        c2: "Declined over the last five years (0.720 \u2192 0.701). The General Council of the Judiciary (CGPJ), Spain's body for appointing and governing judges, operated for six years past its legal renewal date \u2014 from December 2018 until July 2024 \u2014 because the two main parties could not agree on new members, a deadlock the European Commission and a UN special rapporteur both formally flagged as a rule-of-law concern.",
+        c3: "Essentially unchanged (0.893 \u2192 0.888)."
+      },
+      context: [
+        "Over the 2020\u20132025 window Spain's composite score fell from 0.800 to 0.777, with the larger share of the decline in C1 and C2. Two connected institutional disputes dominate this period: the prolonged deadlock over renewing the judiciary's governing council, and the political and legal fallout from a 2024 amnesty law for Catalan separatists.",
+        "The General Council of the Judiciary (CGPJ) is responsible for appointing, transferring and promoting judges; its 20 members are due for renewal every five years, but the mandate that expired in December 2018 was not renewed until July 2024 because Spain's two largest parties, the governing PSOE and the opposition PP, could not reach the required parliamentary agreement. A UN special rapporteur formally raised concern about the five-year delay in January 2024, days before the European Commission agreed, at Spain's own request, to mediate between the parties.",
+        "The eventual June 2024 agreement renewed the Council's membership and committed it to draft reforms strengthening judicial independence within six months, a commitment the Venice Commission was still assessing as of its October 2025 opinion.",
+        "In parallel, parliament approved an amnesty law in May 2024 covering offences linked to the Catalan independence movement, including the 2017 illegal referendum, in exchange for Catalan separatist parties' support for the government's formation. The law excluded terrorism and torture but not other serious offences, and the Constitutional Court's review of its constitutionality was still pending at the end of the year covered by Freedom House's most recent assessment.",
+        "Separately, parliament in February 2024 launched investigative committees examining alleged judicial abuses, a step judges' and lawyers' associations said added further political pressure on an already strained judiciary."
+      ],
+      flag: null,
+      sources: [
+        ["Freedom House, Freedom in the World 2025 \u2014 Spain country report", "Quantitative index / classification", "high"],
+        ["OHCHR, statement of the UN special rapporteur on the CGPJ delay, January 2024", "UN institutional statement", "high"],
+        ["Venice Commission, Opinion No. 1248/2025 on the CGPJ reform", "Institutional / legal document", "high"],
+        ["Verfassungsblog, 'The EU's Involvement in the Renewal of the Spanish Council of the Judiciary'", "Academic analysis", "med"],
+        ["Legislative record, 2024 Spanish Amnesty Law", "Legislative document", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data through measurement year 2025."
+    },
+    "Cyprus": {
+      qual: "A high-profile 'golden passport' corruption scandal, exposed in 2020, that led to criminal prosecutions of a former parliament speaker and continues to weigh on the components.",
+      compNotes: {
+        c1: "Essentially unchanged to slightly higher since Cyprus first enters the dataset in 2021 (0.653 \u2192 0.664), reflecting a partial recovery after the acute phase of the passport scandal rather than an absence of continued strain.",
+        c2: "Declined modestly (0.678 \u2192 0.666). Criminal prosecutions tied to the passport scheme, first filed in 2021, were still working through the courts years later.",
+        c3: "Fell from 0.859 to 0.780, one of the larger declines in this component across the dataset."
+      },
+      context: [
+        "Cyprus enters the EUGA dataset in 2021, so its five-year figure covers 2021\u20132025 rather than the full window used for most other countries. Over that period the composite score fell from 0.730 to 0.703, with by far the largest movement in C3.",
+        "In August 2020, an Al Jazeera investigation known as 'the Cyprus Papers' revealed that Cyprus's citizenship-by-investment ('golden passport') programme had granted EU citizenship to individuals with serious criminal backgrounds, and captured senior officials, including the then-President of the House of Representatives, on video offering to help a fictitious criminal obtain citizenship.",
+        "Cyprus abolished the scheme in November 2020, and the EU opened legal action against both Cyprus and Malta over their investment-citizenship programmes the following month. An official board of inquiry and Cyprus's first related criminal prosecution followed in 2021, with formal corruption charges against the former parliament speaker and three others filed in 2022, ahead of a trial that began later that year.",
+        "Cyprus has since revoked citizenship from dozens of individuals granted passports under the scheme, including two Russian oligarchs stripped in 2024, as part of a broader unwinding effort that has continued for several years after the scheme's abolition.",
+        "The scandal is one of the more thoroughly EU-documented corruption cases involving a sitting parliamentary speaker in this dataset, and its long prosecutorial tail helps explain why C1 and C2 have not shown a clean recovery even as the acute media coverage has faded."
+      ],
+      flag: null,
+      sources: [
+        ["Al Jazeera, 'The Cyprus Papers Undercover' investigation and subsequent reporting (2020\u20132022)", "Investigative journalism", "med"],
+        ["Transparency International, statements on the abolition of the Cyprus and Malta golden-visa schemes", "NGO reporting", "med"],
+        ["Al Jazeera, reporting on formal corruption charges, 2022", "News reporting", "med"],
+        ["Reporting on revocation of citizenships, including 2024 (Euronews, etias.com)", "News reporting", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data. Cyprus first appears in the dataset in 2021, so its 'five-year' change is calculated from 2021, its earliest available year."
+    },
+    "Malta": {
+      qual: "The unresolved institutional legacy of the 2017 assassination of journalist Daphne Caruana Galizia, whose public inquiry found the state responsible for a 'culture of impunity'.",
+      compNotes: {
+        c1: "Essentially unchanged since Malta's entry into the dataset in 2021 (0.605 \u2192 0.621).",
+        c2: "Declined modestly (0.674 \u2192 0.659).",
+        c3: "Essentially unchanged (0.867 \u2192 0.871), a score that independent monitors argue understates unresolved concerns specifically around media freedom and journalist protection."
+      },
+      context: [
+        "Malta, like Cyprus, enters the dataset in 2021, so its five-year figure covers 2021\u20132025. Over that period the composite score has been essentially flat (0.715 \u2192 0.717) \u2014 but flat is, on independent monitors' own account, closer to 'stalled reform' than 'resolved problem'.",
+        "A public inquiry into the October 2017 assassination of investigative journalist Daphne Caruana Galizia concluded in July 2021 that, while there was no evidence the state itself had ordered the killing, the state bore responsibility for having created 'a culture of impunity, generated from the highest levels' of government, which contributed to the conditions that made the murder possible.",
+        "The inquiry issued wide-ranging recommendations covering media freedom protections, anti-corruption enforcement, and constitutional-level checks and balances, developed in line with recommendations from the Venice Commission, GRECO and the European Parliament's legal affairs committee.",
+        "In October 2022, the European Parliament adopted a resolution marking five years since the assassination that found continued serious gaps in Malta's implementation of the inquiry's recommendations, particularly on media freedom and public broadcasting independence.",
+        "By July 2024, the Daphne Caruana Galizia Foundation's own assessment of the EU's Rule of Law Report found that key recommendations \u2014 including reform of freedom-of-information law, protection for journalists, and a functioning national anti-corruption strategy \u2014 still had not been implemented, three years after the inquiry concluded."
+      ],
+      flag: null,
+      sources: [
+        ["European Parliament, resolution of 20 October 2022 on the rule of law in Malta", "Institutional document", "high"],
+        ["Board of Public Inquiry into the assassination of Daphne Caruana Galizia, final report, July 2021", "Institutional / legal document", "high"],
+        ["Daphne Caruana Galizia Foundation, assessment of the 2024 EU Rule of Law Report", "NGO monitoring", "med"],
+        ["European Commission, Rule of Law Report country chapters on Malta (2022\u20132024)", "Institutional document", "high"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data. Malta first appears in the dataset in 2021, so its 'five-year' change is calculated from 2021, its earliest available year."
+    },
+    "Italy": {
+      qual: "One of the sharpest five-year declines in the dataset, concentrated in C1 and C3, closely tracked by press-freedom monitors to political interference at the public broadcaster RAI.",
+      compNotes: {
+        c1: "Fell from 0.774 to 0.642 over the last five years, one of the larger five-year declines in the dataset. Press-freedom organisations attribute much of this to sustained political interference at the public broadcaster RAI since 2022, and to attacks on independent journalism more broadly.",
+        c2: "Essentially unchanged over the last five years (0.648 \u2192 0.648), even as a contested constitutional reform separating the career paths of judges and prosecutors moved through parliament and was ultimately rejected by voters in a March 2026 referendum.",
+        c3: "Fell from 0.864 to 0.774, one of the larger five-year declines in this component across the dataset. Monitors point to a documented rise in legal threats and intimidation against journalists, alongside a car-bomb attack on an investigative reporter in October 2025."
+      },
+      context: [
+        "Over the 2020\u20132025 window Italy's composite score fell from 0.762 to 0.688, with the decline concentrated almost entirely in C1 and C3 rather than C2. Independent monitors trace this closely to developments in the media sector since Giorgia Meloni became prime minister in October 2022.",
+        "A fact-finding mission by the Media Freedom Rapid Response network in May 2024 concluded that RAI, the public broadcaster, has faced 'an unprecedented level of political interference' under the Meloni government, including changes to programming, the sidelining of critical journalists, and disputes over senior appointments that led the ruling coalition to boycott RAI's parliamentary oversight committee from autumn 2024.",
+        "The European Commission has flagged Italy's media environment in successive Rule of Law Reports and warned, without opening formal proceedings, that proposed rules on politicians' televised appearances could conflict with EU pluralism requirements.",
+        "On 16 October 2025, investigative journalist Sigfrido Ranucci's car was blown up outside his home; Prime Minister Meloni condemned the attack and reaffirmed her government's commitment to press freedom, though press-freedom groups noted the incident occurred against a backdrop of years of verbal attacks on independent media by government figures.",
+        "A separate, long-running conflict concerns judicial reform: the government's flagship proposal to split the career paths of judges and prosecutors \u2014 which critics, including much of the judiciary, argued would increase political control over prosecutors \u2014 passed parliament but, lacking the two-thirds majority needed to bypass one, required approval by popular referendum."
+      ],
+      flag: {
+        title: "Development after the measurement period",
+        text: "On 22\u201323 March 2026 Italian voters rejected the judicial reform in a referendum, a significant setback for the Meloni government roughly a year ahead of the next scheduled election. This result falls after the 2025 measurement year and is not reflected in the C2 score, which had remained flat throughout the reform process."
+      },
+      sources: [
+        ["Media Freedom Rapid Response, 'Silencing the Fourth Estate: Italy's Democratic Drift' (May 2024)", "NGO fact-finding mission", "med"],
+        ["Liberties Rule of Law Report, Italy chapters (2024\u20132025)", "NGO monitoring", "med"],
+        ["TEPSA, 'Meloni's Italy puts media freedom in the back seat'", "Policy analysis", "med"],
+        ["Reporting on the Sigfrido Ranucci car-bomb attack, October 2025 (multiple outlets)", "News reporting", "med"],
+        ["Reporting on the March 2026 judicial-reform referendum result (AP, Euronews)", "News reporting \u2014 outside dataset measurement period", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data through measurement year 2025. The March 2026 referendum result is included as contextual development but postdates the measured period."
+    },
+    "Slovenia": {
+      qual: "A modest but steady C1 decline since 2020 that sits alongside genuine, independently recognised improvements to public-broadcaster independence.",
+      compNotes: {
+        c1: "Declined from 0.665 to 0.589 over the last five years. Available sourcing does not point to a single clear cause; the period includes both a government (2020\u20132022) associated with pressure on NGOs and media, and a successor government that introduced media-independence reforms.",
+        c2: "Essentially flat over the last five years (0.675 \u2192 0.672), consistent with reporting that describes Slovenia's judiciary as constitutionally independent but strained by low judicial pay and staffing, which triggered a two-week judges' protest in January 2024.",
+        c3: "Essentially unchanged, marginally higher (0.877 \u2192 0.881) \u2014 consistent with a 2023 reform that gave the public broadcaster RTV Slovenija a governance structure with less direct government influence, even as broader civil-society funding disruptions from the earlier period took years to fully resolve."
+      },
+      context: [
+        "Over the 2020\u20132025 window Slovenia's composite score fell from 0.739 to 0.714, with the movement concentrated in C1. The available sourcing gives a genuinely mixed picture for this period, and this dossier presents it as such rather than resolving it into a single narrative.",
+        "From 2020, the government led by Janez Jan\u0161a suspended or delayed funding tenders for environmental and civil-society NGOs; the Peace Institute later reported that some organisations faced years of financial difficulty as a direct result, a disruption that persisted well into the following government's term despite that government not having caused it.",
+        "In 2023, the successor government under Prime Minister Robert Golob passed a reform of RTV Slovenija, the public broadcaster, replacing its governing bodies with a single council predominantly elected by broadcaster staff and civil society rather than by parliament \u2014 a change welcomed by press-freedom organisations as reducing direct political control, though some provisions on source disclosure drew separate criticism.",
+        "Slovenia's ranking on Reporters Without Borders' World Press Freedom Index improved over this period even as the V-Dem-based C1 component continued to decline, illustrating that the two measures capture different aspects of democratic quality and do not always move together.",
+        "Judges held a two-week protest in January 2024 over pay levels; the Constitutional Court subsequently ruled that judicial pay needed to be adjusted for inflation, and a new judicial wage system was agreed with unions in November 2024."
+      ],
+      flag: null,
+      sources: [
+        ["Freedom House, Freedom in the World 2024 \u2014 Slovenia country report", "Quantitative index / classification", "high"],
+        ["Centre for Media Pluralism and Media Freedom, Slovenia country report", "Academic monitoring", "high"],
+        ["CIVICUS Monitor, reporting on NGO funding disruption, 2020\u20132024", "NGO monitoring", "med"],
+        ["European Centre for Press and Media Freedom, reporting on the RTV Slovenija reform", "NGO monitoring", "med"],
+        ["IDEA Global State of Democracy \u2014 Democracy Tracker, Slovenia country page", "Qualitative monitor", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data through measurement year 2025. Where sourcing does not support a single clear explanation for a component's movement, this dossier says so rather than overstating causal certainty."
+    },
+    "Bulgaria": {
+      qual: "Essentially flat over the last five years at a persistently low level \u2014 reflecting not stability but a prolonged political stalemate.",
+      compNotes: {
+        c1: "Essentially unchanged over the last five years (0.501 \u2192 0.499). Bulgaria held eight parliamentary elections between April 2021 and October 2024, with no governing coalition proving durable \u2014 a pattern of sustained institutional strain rather than a single acute shock.",
+        c2: "Marginally higher over the last five years (0.539 \u2192 0.546), the weakest rule-of-law score in the dataset. Key oversight bodies, including the Supreme Judicial Council and its Inspectorate, have operated for years under expired mandates because parliament has been unable to agree on replacements.",
+        c3: "Essentially flat (0.719 \u2192 0.716)."
+      },
+      context: [
+        "Over the 2020\u20132025 window Bulgaria's composite score has been essentially flat (0.586 \u2192 0.587), but flat is not the same as settled: this period covers eight parliamentary elections and three short-lived governments, none of which secured a durable majority.",
+        "Between April 2021 and October 2024, Bulgaria held elections in April 2021, July 2021, November 2021, October 2022, April 2023, June 2024 and October 2024. Market Links polling from late 2024 found that only 6% of citizens trusted the national parliament, among the lowest levels recorded in Europe.",
+        "A rotating coalition government between GERB-SDS and PP-DB, formed in June 2023 around shared commitments to judicial reform and EU accession milestones (Schengen, the eurozone), broke down in early 2024 before a full rotation could take place, triggering a further caretaker government and snap elections.",
+        "The instability has direct institutional consequences: the Supreme Judicial Council and its Inspectorate, along with numerous other regulatory bodies, have continued operating under expired mandates for years because parliament has repeatedly failed to muster the votes needed to appoint successors.",
+        "US Treasury sanctions imposed in 2021 and 2023 against senior Bulgarian political and business figures, including DPS leader Delyan Peevski, for corruption-related conduct illustrate the kind of entrenched influence that anti-corruption reform efforts have so far failed to dislodge."
+      ],
+      flag: null,
+      sources: [
+        ["Freedom House, Freedom in the World 2024 \u2014 Bulgaria country report", "Quantitative index / classification", "high"],
+        ["BTI 2026 Bulgaria Country Report, Bertelsmann Stiftung", "Comparative governance assessment", "high"],
+        ["OSW Centre for Eastern Studies, 'A country of interim governments'", "Policy analysis", "med"],
+        ["LSE European Politics and Policy blog, reporting on the October 2024 election", "Academic commentary", "med"],
+        ["US Department of the Treasury, Global Magnitsky Act sanctions announcements (2021, 2023)", "Institutional document", "high"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data through measurement year 2025."
+    },
+    "Croatia": {
+      qual: "Persistent, structural rule-of-law weaknesses \u2014 judicial backlog, low public trust in judicial independence, corruption \u2014 rather than an acute political crisis.",
+      compNotes: {
+        c1: "Declined from 0.647 to 0.593 over the last five years, with most of the movement concentrated earlier in the period; the score has been broadly stable since around 2022.",
+        c2: "Declined modestly over the last five years (0.607 \u2192 0.597). Eurobarometer surveys in 2025 found public perception of judicial independence in Croatia below 30%, one of the lowest levels recorded in the EU, alongside persistent concerns about the length of judicial proceedings.",
+        c3: "Essentially unchanged, marginally higher (0.750 \u2192 0.756)."
+      },
+      context: [
+        "Over the 2020\u20132025 window Croatia's composite score fell from 0.668 to 0.649, a modest decline concentrated mostly in the earlier part of the period. The more consistent story across independent monitors is not acute crisis but persistent, structural weakness in the same areas year after year: judicial efficiency, corruption, and media freedom.",
+        "The EU's annual Rule of Law Report and civil-society contributions to it have repeatedly flagged the same set of concerns for Croatia across 2023, 2024 and 2025: a substantial judicial backlog, low public confidence in judicial independence, unresolved rules on state advertising, and the use of strategic lawsuits against public participation (SLAPPs) to pressure journalists.",
+        "The European Public Prosecutor's Office (EPPO) raised concerns in November 2024 over a conflict-of-competence decision in a Croatian corruption case, a rare instance of an EU body directly questioning the handling of a specific prosecution.",
+        "The European Commission's 2025 Rule of Law Report found a broadly positive trajectory across the EU as a whole but singled out Croatia's judiciary, noting that the length of judicial proceedings 'remains a serious issue' \u2014 language that has recurred, with only incremental change, across several years of reporting.",
+        "First-instance public procurement review bodies in Croatia were assessed as having among the lowest levels of perceived independence in the EU, alongside Bulgaria and Hungary \u2014 documented company that sits oddly with Croatia's considerably higher composite score."
+      ],
+      flag: null,
+      sources: [
+        ["European Commission, 2024 and 2025 Rule of Law Reports \u2014 Croatia country chapters", "Institutional document", "high"],
+        ["Centre for Peace Studies / CROSOL, contribution to the Liberties Rule of Law Report (2024\u20132025)", "NGO monitoring", "med"],
+        ["EPPO, statement on rule-of-law concerns following a conflict-of-competence decision, November 2024", "Institutional document", "high"],
+        ["Balkan Insight, reporting on the EU's 2025 Rule of Law Report", "News reporting", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data through measurement year 2025."
+    },
+    "Poland": {
+      qual: "The sharpest reversal of direction in the dataset: from a rule-of-law crisis under the 2015\u20132023 PiS government to a contested, still-incomplete recovery.",
+      compNotes: {
+        c1: "Rose sharply over the last five years (0.450 \u2192 0.645), one of the largest five-year gains in the dataset, reflecting the change of government in December 2023 and the reopening of public media and civic space that had been curtailed under the previous PiS government.",
+        c2: "Essentially flat over the last five years (0.659 \u2192 0.665). The current government's attempts to reverse the 2015\u20132023 judicial reforms have repeatedly been blocked or contested by the PiS-aligned Constitutional Tribunal and, until August 2025, by the president.",
+        c3: "Essentially unchanged over the last five years (0.737 \u2192 0.738), indicating that civil-liberties protections were less directly affected by the judicial standoff than the electoral and rule-of-law components."
+      },
+      context: [
+        "Over the 2020\u20132025 window Poland's composite score rose from 0.615 to 0.683 \u2014 one of the larger five-year gains in the dataset \u2014 but the improvement sits almost entirely in the C1 (democracy) component. C2 (rule of law) has barely moved, which is itself the documented result of an unresolved institutional conflict rather than a sign of settled stability.",
+        "The Law and Justice (PiS) government that governed from 2015 to 2023 restructured the National Council of the Judiciary (KRS) and the Constitutional Tribunal in ways that the European Commission, the European Court of Human Rights and Poland's own Supreme Court found to have compromised judicial independence. In 2021 Poland became the first country ever expelled from the European Network of Councils for the Judiciary over the politicisation of the KRS.",
+        "Following the October 2023 parliamentary election, the new coalition government under Prime Minister Donald Tusk presented an action plan to the European Commission in February 2024 to restore the rule of law. The Commission responded by closing the Article 7 procedure against Poland in May 2024 and unblocking previously frozen EU funds, including confirming fulfilment of 'super milestones' on judicial independence.",
+        "Implementation has since stalled. Legislation passed by the Sejm in 2024 to reform the KRS was referred to the Constitutional Tribunal \u2014 whose own legitimacy the government disputes \u2014 which found it unconstitutional; the government has in turn refused since spring 2024 to publish or enforce several Tribunal rulings it considers illegitimate, leaving Poland with two parallel disputes over which institutions hold constitutional authority.",
+        "Throughout this period, President Andrzej Duda, a PiS ally, used his veto and referral powers to block elements of the government's judicial programme, including sending the 2025 budget to the Constitutional Tribunal over cuts to the Tribunal's and the KRS's own funding."
+      ],
+      flag: {
+        title: "Development after the measurement period",
+        text: "On 1 June 2025 the PiS-backed candidate Karol Nawrocki won the presidential runoff (50.9% to 49.1%) and was sworn in on 6 August 2025, succeeding Duda. Nawrocki has signalled he will continue to use presidential powers to block the government's judicial reform programme, meaning the institutional standoff reflected in the flat C2 trend is likely to continue beyond the 2025 measurement year."
+      },
+      sources: [
+        ["European Commission, closure of the Article 7 procedure against Poland, May 2024", "Institutional document", "high"],
+        ["eucrim, rule-of-law developments in Poland, 2024 overviews", "Legal/monitoring commentary", "med"],
+        ["European Network of Councils for the Judiciary, expulsion of Poland's KRS (2021)", "Institutional document", "high"],
+        ["House of Commons Library, 'Poland: The Tusk government and the 2025 presidential election'", "Research briefing", "high"],
+        ["Reporting on the Constitutional Tribunal budget and appointments dispute, 2024\u20132025 (Reuters)", "News reporting", "med"],
+        ["Reporting on Karol Nawrocki's election victory, June 2025 (Notes from Poland, AP)", "News reporting \u2014 partly outside dataset measurement period", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data through measurement year 2025. The August 2025 change of president is included as contextual development but only partly overlaps with the measured period."
+    },
+    "Romania": {
+      qual: "The largest single five-year component decline in the dataset (C1), driven by the annulment of the November 2024 presidential election.",
+      compNotes: {
+        c1: "Fell from 0.676 to 0.464 over the last five years \u2014 the steepest five-year decline of any component for any country in the dataset. Most of the fall predates 2024, but it accelerated sharply around the annulled November 2024 presidential election and only partially recovered in 2025 after a new vote was held.",
+        c2: "Declined moderately over the last five years (0.623 \u2192 0.606), consistent with a rule-of-law environment under sustained strain, though without the scale of disruption seen in C1.",
+        c3: "Essentially flat to slightly lower over the last five years (0.767 \u2192 0.748)."
+      },
+      context: [
+        "Over the 2020\u20132025 window Romania's composite score fell from 0.689 to 0.606, driven overwhelmingly by the C1 (democracy) component, which lost more ground than any other country-component pair in the dataset over this period. The proximate cause was the most serious electoral crisis in Romania's post-communist history.",
+        "On 24 November 2024, the first round of Romania's presidential election was unexpectedly won by C\u0103lin Georgescu, a previously marginal far-right, pro-Russia candidate. Days before the scheduled run-off, declassified Romanian intelligence assessments described a large-scale, coordinated social media campaign \u2014 including tens of thousands of cyberattacks on electoral IT infrastructure and covert promotion of Georgescu's content on TikTok \u2014 that intelligence services linked to Russian hybrid interference.",
+        "On 6 December 2024, Romania's Constitutional Court took the unprecedented step of annulling the first-round result entirely, citing the scale of the interference. The decision triggered weeks of protests, some of them violent, and was itself contested by critics as a heavy-handed judicial intervention in an electoral outcome.",
+        "Georgescu was subsequently barred from standing in the re-run election on procedural grounds, prompting further unrest. The re-run took place in May 2025 and was won by the pro-European independent candidate Nicu\u0219or Dan, who was sworn in as president on 26 May 2025.",
+        "The episode is treated by EU and NATO-adjacent monitoring bodies as one of the most significant documented cases of state-linked election interference identified within an EU member state to date."
+      ],
+      flag: {
+        title: "Ongoing developments after the measurement period",
+        text: "C\u0103lin Georgescu remains under criminal investigation in Romania on charges including support for fascist organisations and actions against the constitutional order. The political and legal fallout from the annulled election was still unfolding at the end of the 2025 measurement period and may affect subsequent data points."
+      },
+      sources: [
+        ["Romanian Constitutional Court, decision annulling the first-round result, 6 December 2024", "Institutional / legal document", "high"],
+        ["IIEA, 'Romania's 2024\u20132025 Presidential Election Crisis and Its Aftermath'", "Policy analysis", "med"],
+        ["House of Commons Library, 'Romania: the 2025 Presidential election'", "Research briefing", "high"],
+        ["CIVICUS Monitor, reporting on protests and unrest, January 2025", "NGO monitoring", "med"],
+        ["Reporting on Nicu\u0219or Dan's election and inauguration, May 2025 (Reuters, AP)", "News reporting", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data through measurement year 2025. Ongoing legal proceedings against C\u0103lin Georgescu are included as contextual development but are not reflected in the scores."
+    },
+    "Greece": {
+      qual: "C1 (democracy) has declined steadily since 2020, a decline independent monitors link to a documented state surveillance scandal known as 'Predatorgate'.",
+      compNotes: {
+        c1: "Fell from 0.669 to 0.568 over the last five years, among the larger five-year declines in the dataset. Independent press-freedom monitors attribute much of this to the fallout from the 'Predatorgate' surveillance scandal, which became public in 2022 and continued to generate legal and political fallout through 2025.",
+        c2: "Declined moderately over the last five years (0.604 \u2192 0.592). Judicial proceedings tied to the spyware scandal moved slowly: Greece's Supreme Court prosecutors closed the case against state officials in 2024 despite documented evidence of state involvement, a decision independent monitors have criticised as incomplete accountability.",
+        c3: "Essentially flat to slightly lower (0.744 \u2192 0.733), consistent with Human Rights Watch's assessment of a sustained rather than acute deterioration in media-freedom conditions over this period."
+      },
+      context: [
+        "Over the 2020\u20132025 window Greece's composite score fell from 0.672 to 0.631, with almost all of the movement concentrated in the C1 (democracy) component. The decline coincides closely with the timeline of 'Predatorgate', a state surveillance scandal that Human Rights Watch has described as part of a broader deterioration of media freedom in Greece over exactly this period.",
+        "The scandal became public in 2022, when investigative journalist Thanasis Koukakis and PASOK leader Nikos Androulakis discovered their phones had been infected with Predator spyware \u2014 commercial surveillance software capable of accessing messages, photos, and a device's camera and microphone. Subsequent reporting identified at least 87 people targeted, including ministers, senior military officials and journalists; roughly a third were also under separate, legally authorised surveillance by Greece's National Intelligence Service.",
+        "In July 2024, Greece's Supreme Court prosecutors closed the investigation into state agencies and officials, finding no evidence connecting them to the spyware's use \u2014 a conclusion Human Rights Watch and press-freedom organisations say is difficult to reconcile with documented evidence, including findings from a European Parliament inquiry.",
+        "A separate criminal trial of four individuals connected to Intellexa, the company that marketed Predator in Greece, opened in March 2025 and ran for most of that year. Reporters Without Borders and Human Rights Watch both describe the case as having had a lasting chilling effect on investigative journalism in Greece, independent of the eventual criminal verdicts."
+      ],
+      flag: {
+        title: "Development after the measurement period",
+        text: "Criminal convictions of four Intellexa-linked defendants were handed down in February 2026, the first time a Greek court held spyware-company executives accountable \u2014 but this falls after the last EUGA measurement year (2025) and is not reflected in the C1 score. The verdict addressed only the commercial actors who marketed the spyware; the question of state-official accountability that has weighed on Greece's press-freedom assessments throughout 2020\u20132025 remains unresolved."
+      },
+      sources: [
+        ["Human Rights Watch, 'From Bad to Worse: The Deterioration of Media Freedom in Greece' (2025)", "NGO report", "med"],
+        ["Reporting on Supreme Court closure of the state investigation, July 2024 (HRW, Neos Kosmos)", "News / NGO reporting", "med"],
+        ["Reporting on the Intellexa criminal trial and convictions, Feb 2026 (Al Jazeera, HRW)", "News reporting \u2014 outside dataset measurement period", "med"],
+        ["Reporters Without Borders, statements on Predatorgate and media freedom", "NGO monitoring", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data through measurement year 2025. The February 2026 criminal convictions are included as contextual development but postdate the measured period."
+    },
+    "Hungary": {
+      qual: "Below the signal threshold of 0.60 since 2019 \u2014 the sharpest and most sustained decline in the dataset.",
+      compNotes: {
+        c1: "Declined almost without interruption since 2013 (from 0.575 to 0.315 in 2025). Over the last five years alone the decline continued, driven by further consolidation of the electoral system and continued concentration of media ownership among government-aligned outlets.",
+        c2: "Declined from 0.641 (2013) to 0.500 (2025); over the last five years the decline slowed but continued. The judiciary has repeatedly been the subject of EU rule-of-law procedures since the 2011\u20132012 constitutional overhaul.",
+        c3: "Declined from 0.775 to 0.592, the lowest level in the dataset. Over the last five years the decline continued, driven in particular by new restrictions on civil society organisations receiving foreign funding, introduced from 2023 onward."
+      },
+      context: [
+        "Over the 2020\u20132025 window \u2014 the period covered by the last five data points \u2014 Hungary's composite score continued to fall, from 0.498 to 0.469. The rate of decline was smaller than in 2013\u20132019, but all three components kept moving in the same direction. This is precisely the period in which Hungary's classification shifted, in the assessments of the leading independent monitors, from 'backsliding democracy' to 'electoral autocracy'.",
+        "The V-Dem Institute classified Hungary in its Democracy Report 2022 as an 'electoral autocracy' \u2014 the first EU member state to receive that classification. Freedom House, over the same period, classified Hungary as 'Partly Free', likewise a first within the Union.",
+        "At institutional level the European Parliament reached the same conclusion: in its resolution of 15 September 2022 the Parliament concluded that Hungary can no longer be considered a full democracy and described it as a 'hybrid regime of electoral autocracy'. That resolution built on the Article 7 procedure the Parliament had triggered in 2018 over systemic risks to the values in Article 2 TEU.",
+        "From December 2022 the Council of the EU applied the rule-of-law conditionality regulation for the first time and froze part of Hungary's EU funding over rule-of-law and anti-corruption shortcomings \u2014 a measure that falls within the last five years and is associated in the literature with subsequent economic slowdown.",
+        "A further contributor to the continued C3 decline within this five-year window is the tightening of restrictions on non-governmental organisations that receive funding from abroad, most visibly through the Sovereignty Protection Office established in February 2024, which has been used to publicly question the funding and loyalties of civil society groups and government critics."
+      ],
+      flag: {
+        title: "Development after the measurement period (outside the EUGA dataset)",
+        text: "At the parliamentary election of 12 April 2026, Prime Minister Viktor Orb\u00e1n's Fidesz party suffered a historic defeat after sixteen years in government. The opposition Tisza party, led by P\u00e9ter Magyar, won a landslide majority (roughly 138\u2013141 of 199 seats); Magyar was sworn in as prime minister on 13 May 2026. This change of government falls outside the EUGA measurement window (through 2025) and is therefore not reflected in the C1\u2013C3 scores. Whether it marks a break in the underlying indicators (V-Dem, Freedom House, WJP) can only be established at the next data update."
+      },
+      sources: [
+        ["V-Dem Institute, Democracy Report 2022", "Quantitative index / classification", "high"],
+        ["European Parliament, resolution of 15 September 2022 on the situation in Hungary", "Institutional document", "high"],
+        ["Freedom House, Freedom in the World / Nations in Transit", "Quantitative index / classification", "high"],
+        ["Council of the EU, application of the rule-of-law conditionality regulation (from December 2022)", "Institutional document", "high"],
+        ["Reporting on the establishment and role of the Sovereignty Protection Office (2024)", "News reporting", "med"],
+        ["Reporting on the April 2026 election result (Reuters, CNN, Al Jazeera)", "News reporting \u2014 outside dataset measurement period", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data through measurement year 2025. The April 2026 election result is included as contextual development but is not reflected in the scores."
+    },
+    "Denmark": {
+      qual: "Structurally in the top group of the dataset; C3 (fundamental rights) shows the most \u2014 internationally documented \u2014 tension.",
+      compNotes: {
+        c1: "Essentially flat over the last five years (0.882 \u2192 0.884), following a long stable period since 2013. Regular free and fair elections and a pluralistic media landscape.",
+        c2: "Stable to marginally lower over the last five years (0.897 \u2192 0.896). An independent judiciary and low levels of corruption, consistently confirmed by the World Justice Project Rule of Law Index, in which Denmark typically ranks among the global top.",
+        c3: "Essentially flat over the last five years (0.958 \u2192 0.957) \u2014 yet this is precisely the component where international bodies have raised documented concerns, over the treatment of migrants and asylum seekers, even though this has not shown up as a decline in the score to date."
+      },
+      context: [
+        "Over the 2020\u20132025 window, Denmark's composite score has been essentially flat (0.912 \u2192 0.912), and none of the three components moved by more than 0.002. That stability sits alongside \u2014 not in contradiction with \u2014 a series of documented developments concentrated specifically in migration and asylum policy, exactly the area where independent monitors have raised the most concerns during this same period.",
+        "Freedom House's 2025 country report describes Denmark as a robust democracy with full political rights, a functioning free press and an independent judiciary, while explicitly noting that Denmark has struggled to uphold fundamental freedoms for immigrants and other newcomers, pointing to cases brought against Denmark before the European Court of Human Rights, the UN Human Rights Committee and the UN Committee on the Rights of the Child over deportation decisions.",
+        "The so-called 'ghetto law' (Public Housing Law), which ties housing policy to the share of residents with a 'non-Western' background, was found by a preliminary ruling of the Court of Justice of the EU potentially to amount to direct discrimination on grounds of ethnicity.",
+        "During Denmark's presidency of the Council of the EU (July\u2013December 2025), Human Rights Watch wrote an open letter to Prime Minister Mette Frederiksen urging her to put the rule of law and human rights at the centre of the presidency and to take a firm stance on Hungary's rule-of-law violations.",
+        "In January 2026 the Danish government announced further tightening of deportation legislation, explicitly acknowledging tension with the European Court of Human Rights' current interpretation of the European Convention on Human Rights \u2014 a position the prime minister defended as a matter of 'democratic control' over migration."
+      ],
+      flag: {
+        title: "Development after the measurement period (outside the EUGA dataset)",
+        text: "The announcement of tougher deportation legislation in January 2026 falls just after the last EUGA measurement year (2025) and is therefore not reflected in the C3 score. Given that this is exactly the area where international monitors have already flagged concern within the 2020\u20132025 window, it is a relevant indicator to track at the next data update."
+      },
+      sources: [
+        ["Freedom House, Freedom in the World 2025 \u2014 Denmark country report", "Quantitative index / classification", "high"],
+        ["Court of Justice of the EU, preliminary ruling on the Danish 'ghetto law'", "Legal ruling", "high"],
+        ["Human Rights Watch, open letter to Prime Minister Frederiksen, June 2025", "NGO reporting", "med"],
+        ["Reporting on announced tightening of deportation legislation, January 2026 (Reuters)", "News reporting \u2014 outside dataset measurement period", "med"],
+        ["IDEA Global State of Democracy \u2014 Democracy Tracker, Denmark country page", "Qualitative monitor", "med"]
+      ],
+      methnote: "The quantitative series (C1\u2013C3, EUGA) is based on V-Dem, Freedom House and World Justice Project data through measurement year 2025. The migration and deportation developments cited illustrate where the C3 component (fundamental rights) is under the most scrutiny, without this having translated into a decline in the composite score to date."
+    }
+  };
+
+  // ---------------------------------------------------------------- DOSSIER RENDER
+  function showDossier(land){
+    document.getElementById('view-landing').style.display = 'none';
+    document.getElementById('view-dossier').style.display = 'block';
+    window.scrollTo(0,0);
+
+    var cur = findRow(LASTY, land);
+    var base = get5yBaseline(land);
+    var dos = DOSSIERS[land];
+
+    document.getElementById('d-eyebrow').textContent = 'Country dossier \u2014 EU Governance Assessment';
+    document.getElementById('d-title').textContent = land;
+    document.getElementById('d-score').textContent = fmt(cur.euga);
+    document.getElementById('d-score').className = 'dscore '+scoreClass(cur.euga);
+    document.getElementById('d-band').textContent = bandLabel(cur.euga);
+    document.getElementById('d-band').className = 'dband '+scoreClass(cur.euga);
+    document.getElementById('d-qual').textContent = dos ? dos.qual : '';
+
+    var delta = base ? (cur.euga - base.row.euga) : 0;
+    var deltaLabel = base ? (base.fallback ? ('Change since '+base.year) : ('5-year change ('+base.year+'\u2013'+LASTY+')')) : '5-year change';
+    var statsHtml =
+        '<div class="stat"><div class="slabel">C1 democracy</div><div class="sval">'+fmt(cur.c1)+'</div></div>'
+      + '<div class="stat"><div class="slabel">C2 rule of law</div><div class="sval">'+fmt(cur.c2)+'</div></div>'
+      + '<div class="stat"><div class="slabel">C3 fundamental rights</div><div class="sval">'+fmt(cur.c3)+'</div></div>'
+      + '<div class="stat"><div class="slabel">'+deltaLabel+'</div><div class="sval '+deltaClass(delta)+'">'+deltaArrow(delta)+' '+deltaText(delta)+'</div></div>';
+    document.getElementById('d-stats').innerHTML = statsHtml;
+
+    renderTrend(land);
+
+    var compHtml = ['c1','c2','c3'].map(function(k){
+      var note = dos ? dos.compNotes[k] : '';
+      var cdelta = base ? (cur[k] - base.row[k]) : null;
+      var deltaHtml = cdelta===null ? '' : '<div class="cdelta '+deltaClass(cdelta)+'">'+deltaArrow(cdelta)+' '+deltaText(cdelta)+' over last 5y</div>';
+      return '<div class="comp-card"><div class="chead"><div class="cname">'+COMP_LABEL[k]+'</div><div class="cscorewrap"><div class="cscore">'+fmt(cur[k])+'</div>'+deltaHtml+'</div></div>'
+           + '<div class="cdesc">'+COMP_DESC[k]+'</div>'
+           + (note ? '<div class="cnote cnote-'+k+'">'+note+'</div>' : '')
+           + '</div>';
+    }).join('');
+    document.getElementById('d-components').innerHTML = compHtml;
+
+    var ctxHtml = '';
+    if (dos){
+      ctxHtml += dos.context.map(function(p,i){ return '<p'+(i===0?' class="lead5y"':'')+'>'+p+'</p>'; }).join('');
+      if (dos.flag){
+        ctxHtml += '<div class="flag-box"><b>'+dos.flag.title+'</b>'+dos.flag.text+'</div>';
+      }
+    } else {
+      ctxHtml = '<p>Qualitative context has not yet been developed for this country.</p>';
+    }
+    document.getElementById('d-context').innerHTML = ctxHtml;
+
+    var srcHtml = '';
+    if (dos){
+      dos.sources.forEach(function(s){
+        var badgeClass = s[2]==='high' ? 'high' : 'med';
+        var badgeLabel = s[2]==='high' ? 'High' : 'Medium';
+        srcHtml += '<tr><td>'+s[0]+'</td><td>'+s[1]+'</td><td><span class="badge '+badgeClass+'">'+badgeLabel+'</span></td></tr>';
+      });
+    }
+    document.getElementById('d-sources').innerHTML = srcHtml;
+    document.getElementById('d-methnote').textContent = dos ? dos.methnote : '';
+
+    document.querySelectorAll('.tab').forEach(function(t,i){ t.classList.toggle('active', i===0); });
+    document.querySelectorAll('.tabpanel').forEach(function(p,i){ p.classList.toggle('active', i===0); });
+  }
+
+  window.showDossier = showDossier;
+  window.showLanding = function(){
+    document.getElementById('view-dossier').style.display = 'none';
+    document.getElementById('view-landing').style.display = 'block';
+    window.scrollTo(0,0);
+  };
+
+  document.querySelectorAll('.tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      var key = tab.getAttribute('data-tab');
+      document.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('active', t===tab); });
+      document.querySelectorAll('.tabpanel').forEach(function(p){ p.classList.toggle('active', p.id==='panel-'+key); });
+    });
+  });
+
+  var slider = document.getElementById('cmp-slider');
+  slider.max = YEARS.length-1;
+  slider.value = YEARS.length-1;
+  slider.addEventListener('input', function(){ renderCmp(parseInt(slider.value,10)); });
+
+  document.getElementById('btn-mode-tiles').addEventListener('click', function(){
+    document.getElementById('mode-tiles').style.display='block';
+    document.getElementById('mode-cmp').style.display='none';
+    this.classList.add('active');
+    document.getElementById('btn-mode-cmp').classList.remove('active');
+  });
+  document.getElementById('btn-mode-cmp').addEventListener('click', function(){
+    document.getElementById('mode-tiles').style.display='none';
+    document.getElementById('mode-cmp').style.display='block';
+    this.classList.add('active');
+    document.getElementById('btn-mode-tiles').classList.remove('active');
+    renderCmp(parseInt(slider.value,10));
+  });
+
+  buildTiles();
+})();
+</script>
+</body>
+</html>

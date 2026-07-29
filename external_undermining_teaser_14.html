@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>External Undermining — dashboard teaser</title>
+<style>
+  :root{
+    --ink:#1b1f26; --mute:#61605c; --faint:#8b8a85;
+    --accent:#1668b3; --accent-dark:#0a2f57; --accent-mid:#4d9ade; --accent-soft:#e8f1fb;
+    --gold:#e0a52e; --steel:#3d5a80;
+    --line:#cdccc6; --line-soft:#e8e7e2; --panel:#ffffff; --canvas:#fcfcfa;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:#e6e4de; padding:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* Fixed teaser card, sized to sit within roughly half an A4 page in landscape (297 x 148.5mm) */
+  .teaser{
+    width:640px; max-width:100%; margin:0 auto; background:var(--panel);
+    border-radius:14px; overflow:hidden;
+    box-shadow:0 1px 2px rgba(27,31,38,.08), 0 8px 28px rgba(27,31,38,.16);
+  }
+
+  /* ---------- header ---------- */
+  .head{
+    position:relative;
+    background:linear-gradient(135deg,#0a2f57 0%,#123a63 45%,#1b1f26 100%); color:#fff;
+    padding:13px 20px 14px; display:flex; justify-content:space-between; align-items:center; gap:12px;
+  }
+  .head::after{
+    content:""; position:absolute; left:0; right:0; bottom:0; height:3px;
+    background:linear-gradient(90deg,var(--accent-mid) 0%,var(--accent) 55%,var(--gold) 100%);
+  }
+  .head .eyebrow{ font-size:9px; letter-spacing:.13em; text-transform:uppercase; color:#93bce4; font-weight:700; }
+  .head h1{ font-size:19.5px; margin:2px 0 0; letter-spacing:-.015em; color:#fff; font-weight:800; line-height:1.1; }
+  .stat-pill{
+    background:rgba(255,255,255,.13); border:1px solid rgba(147,188,228,.45); color:#dcebfa;
+    font-size:10px; font-weight:700; padding:6px 12px; border-radius:20px; white-space:nowrap; letter-spacing:.01em;
+  }
+
+  /* ---------- map ---------- */
+  .map-stage{
+    position:relative; padding:14px 16px 4px;
+    background-color:var(--canvas);
+    background-image:radial-gradient(#dde3ea 1px, transparent 1px);
+    background-size:15px 15px;
+  }
+  #teaser-map{ width:100%; }
+  #teaser-map svg{ width:100%; height:auto; display:block; }
+
+  /* ---------- actor card ---------- */
+  .actor-card{
+    position:absolute; top:14px; left:16px; width:35%; min-width:222px;
+    background:rgba(255,255,255,.985); border:1px solid var(--line-soft); border-radius:9px;
+    padding:9px 12px 10px;
+    box-shadow:0 1px 2px rgba(27,31,38,.06), 0 4px 14px rgba(27,31,38,.13);
+  }
+  .actor-card .panel-title{
+    font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--accent);
+    margin:0 0 6px; padding-bottom:5px; border-bottom:1.5px solid var(--accent-soft);
+  }
+  .stackbar{
+    display:flex; width:100%; height:12px; border-radius:6px; overflow:hidden;
+    margin-bottom:8px; box-shadow:inset 0 0 0 1px rgba(27,31,38,.07);
+  }
+  .stackbar .seg{ height:100%; flex-shrink:0; }
+  .actor-legend{ display:flex; flex-direction:column; gap:3px; }
+  .al-item{ display:flex; align-items:center; gap:6px; font-size:9.2px; line-height:1.25; }
+  .al-dot{ width:7px; height:7px; border-radius:2px; flex:0 0 auto; }
+  .al-label{ font-weight:700; color:var(--ink); flex:1 1 auto; min-width:0; }
+  .al-count{ color:var(--mute); font-weight:600; font-variant-numeric:tabular-nums; flex:0 0 auto; white-space:nowrap; }
+
+  .kicker-row{ display:flex; gap:5px; margin-top:9px; }
+  .kicker{
+    flex:1; background:linear-gradient(180deg,#f2f8fe,var(--accent-soft));
+    border:1px solid #d3e4f5; border-radius:6px; padding:6px 5px; text-align:center;
+  }
+  .kicker .n{ font-size:12.5px; font-weight:800; color:var(--accent-dark); line-height:1.05; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .kicker .l{ font-size:7.4px; color:var(--mute); text-transform:uppercase; letter-spacing:.04em; margin-top:2px; white-space:nowrap; font-weight:600; }
+
+  /* ---------- institutional strip (EU / NATO, deliberately off the geographic map) ---------- */
+  .inst-strip{
+    display:flex; align-items:center; gap:12px;
+    margin:8px 16px 0; padding:8px 12px;
+    background:#f6f5f2; border:1px solid var(--line-soft); border-radius:8px;
+  }
+  .inst-label{
+    font-size:8.1px; font-weight:800; text-transform:uppercase; letter-spacing:.05em;
+    color:var(--faint); line-height:1.35; flex:0 0 auto; white-space:nowrap;
+  }
+  .inst-items{ display:flex; gap:14px; align-items:center; flex:1; }
+  .inst-item{ display:flex; align-items:center; gap:7px; }
+  .inst-item svg{ display:block; flex:0 0 auto; }
+  .inst-text .nm{ font-size:9.5px; font-weight:800; color:var(--ink); line-height:1.15; }
+  .inst-text .ct{ font-size:8.4px; color:var(--mute); line-height:1.2; }
+  .inst-note{ font-size:8px; color:var(--faint); font-style:italic; line-height:1.35; max-width:186px; text-align:right; }
+
+  /* ---------- legend ---------- */
+  .legend-row{
+    display:flex; flex-wrap:wrap; gap:10px; font-size:8.7px; color:var(--mute);
+    padding:9px 16px 11px; background:var(--panel); border-top:1px solid var(--line-soft); margin-top:9px;
+  }
+  .legend-row .sw{ display:inline-flex; align-items:center; gap:4px; }
+  .legend-row i{ width:8px; height:8px; border-radius:2px; display:inline-block; }
+
+  /* ---------- footer ---------- */
+  .foot{
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    padding:11px 20px; background:#f4f2ee; border-top:1px solid var(--line-soft);
+  }
+  .foot-note{ font-size:9.6px; color:var(--mute); line-height:1.35; }
+  .cta-btn{
+    display:inline-flex; align-items:center; gap:6px;
+    background:linear-gradient(180deg,var(--accent),#12579a); color:#fff; text-decoration:none;
+    font-size:11.5px; font-weight:700; padding:9px 18px; border-radius:22px; white-space:nowrap;
+    box-shadow:0 2px 7px rgba(22,104,179,.35); transition:filter .15s;
+  }
+  .cta-btn:hover{ filter:brightness(1.1); }
+
+  /* Narrow embeds / mobile: stop overlaying the actors card on the map and stack instead */
+  @media (max-width: 620px){
+    .actor-card{ position:static; width:auto; min-width:0; margin:0 0 10px; box-shadow:none; }
+    .map-stage{ padding-top:12px; }
+    .head{ flex-wrap:wrap; }
+    .foot{ flex-wrap:wrap; gap:10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="teaser">
+  <div class="head">
+    <div>
+      <div class="eyebrow">Aantekeningen in de marge — dashboard</div>
+      <h1>External Undermining</h1>
+    </div>
+    <div class="stat-pill" id="head-pill">— incidents · — dossiers</div>
+  </div>
+
+  <div class="map-stage">
+    <div class="actor-card">
+      <div class="panel-title">Actors identified</div>
+      <div class="stackbar" id="teaser-stackbar"></div>
+      <div class="actor-legend" id="teaser-actor-legend"></div>
+      <div class="kicker-row" id="teaser-kickers"></div>
+    </div>
+
+    <div id="teaser-map"></div>
+  </div>
+
+  <div class="inst-strip">
+    <div class="inst-label">Institutional level</div>
+    <div class="inst-items" id="inst-items"></div>
+    <div class="inst-note">Not member states — shown separately from the map.</div>
+  </div>
+
+  <div class="legend-row">
+    <span class="sw"><i style="background:#0a2f57"></i>6+ incidents</span>
+    <span class="sw"><i style="background:#1668b3"></i>3–5</span>
+    <span class="sw"><i style="background:#84b6e2"></i>1–2</span>
+    <span class="sw"><i style="background:#dcdad4"></i>no confirmed incidents</span>
+    <span class="sw"><i style="border:1px dashed #c7c5bd;background:transparent;"></i>CH — not an EU member</span>
+  </div>
+
+  <div class="foot">
+    <div class="foot-note">Source-based dossiers, methodology and full incident list on GitHub.</div>
+    <a class="cta-btn" href="external_undermining_dashboard.html" target="_blank" rel="noopener">Open interactive dashboard →</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  // Lightweight snapshot for the teaser only. Update the "n" values, INSTITUTIONS counts,
+  // ACTORS counts and TOTAL_* constants when new dossiers are coded in the full dashboard.
+  // EU and NATO are deliberately NOT in this array: they are not geographic entities, so they
+  // are rendered in their own strip below the map instead of being forced into the cartogram.
+  var COUNTRIES = [
+    {code:"IE", col:0, row:3, n:4}, {code:"DK", col:4, row:2, n:4}, {code:"LT", col:6, row:2, n:4}, {code:"LV", col:7, row:2, n:4},
+    {code:"EE", col:6, row:1, n:5}, {code:"SE", col:5, row:0, n:4}, {code:"FI", col:6, row:0, n:3},
+    {code:"BE", col:2, row:3, n:4}, {code:"NL", col:3, row:3, n:4}, {code:"DE", col:4, row:3, n:7}, {code:"PL", col:5, row:3, n:5},
+    {code:"FR", col:2, row:4, n:5}, {code:"LU", col:3, row:4, checkedZero:true}, {code:"CZ", col:5, row:4, n:3}, {code:"SK", col:6, row:4, n:3},
+    {code:"PT", col:0, row:5, n:4}, {code:"ES", col:1, row:5, n:3}, {code:"IT", col:3, row:5, n:5}, {code:"AT", col:4, row:5, n:3},
+    {code:"HU", col:5, row:5, n:3}, {code:"RO", col:6, row:5, n:4},
+    {code:"SI", col:4, row:6, n:2}, {code:"HR", col:5, row:6, n:2}, {code:"BG", col:7, row:6, n:5},
+    {code:"MT", col:2, row:7, n:1}, {code:"GR", col:6, row:7, n:3}, {code:"CY", col:8, row:7, n:2},
+    {code:"CH", col:4, row:4, isGhost:true}
+  ];
+  var LEFT_PAD_COLS_WIDE = 5.9; // blank reserve so the Actors card never sits over a hex
+  var STACK_BREAKPOINT = 620;   // below this the card stacks above the map, so no reserve is needed
+  function leftPadCols(){ return window.innerWidth <= STACK_BREAKPOINT ? 0 : LEFT_PAD_COLS_WIDE; }
+
+  var INSTITUTIONS = [
+    {code:"EU",   name:"EU institutions", n:2, stroke:"#e0a52e"},
+    {code:"NATO", name:"NATO",            n:2, stroke:"#3d5a80", dashed:true}
+  ];
+
+  var ACTORS = [
+    ["Russia", 80, "#1668b3"],
+    ["Not attributed", 9, "#c9c8c1"],
+    ["Multiple / joint actors", 4, "#9fb8cf"],
+    ["China", 2, "#e07a3f"],
+    ["Belarus", 2, "#2fa374"],
+    ["Mixed / unattributed", 2, "#b7a6c9"],
+    ["Other (non-state actor)", 1, "#c98f5e"]
+  ];
+  var TOTAL_INCIDENTS = 100, TOTAL_DOSSIERS = 29;
+
+  document.getElementById("head-pill").textContent = TOTAL_INCIDENTS + " incidents · " + TOTAL_DOSSIERS + " dossiers";
+
+  function colorFor(n){
+    if(!n) return "#dcdad4";
+    if(n >= 6) return "#0a2f57";
+    if(n >= 3) return "#1668b3";
+    return "#84b6e2";
+  }
+
+  function hexPoints(cx, cy, r){
+    var pts = [];
+    for(var i=0;i<6;i++){
+      var ang = Math.PI/180 * (60*i - 30);
+      pts.push((cx+r*Math.cos(ang)).toFixed(1)+","+(cy+r*Math.sin(ang)).toFixed(1));
+    }
+    return pts.join(" ");
+  }
+
+  function buildMap(){
+    var size = 25;
+    var hw = size*Math.sqrt(3), vh = size*1.5;
+    var maxCol = Math.max.apply(null, COUNTRIES.map(function(c){return c.col + 0.5*(c.row%2);}));
+    var maxRow = Math.max.apply(null, COUNTRIES.map(function(c){return c.row;}));
+    var pad = leftPadCols();
+    var svgW = pad*hw + (maxCol+1)*hw + size, svgH = (maxRow+1)*vh + size*1.2;
+    var svg = ['<svg viewBox="0 0 '+svgW+' '+svgH+'" xmlns="http://www.w3.org/2000/svg" role="img">'];
+    svg.push('<title>Coded external-undermining incidents by EU member state</title>');
+    svg.push('<defs><filter id="hexshadow" x="-30%" y="-30%" width="160%" height="160%">'
+           + '<feDropShadow dx="0" dy="0.7" stdDeviation="0.9" flood-color="#1b1f26" flood-opacity="0.20"/>'
+           + '</filter></defs>');
+    svg.push('<g filter="url(#hexshadow)">');
+
+    COUNTRIES.forEach(function(c){
+      var cx = size + pad*hw + hw*(c.col + 0.5*(c.row%2));
+      var cy = size + vh*c.row;
+      var pts = hexPoints(cx, cy, size-1.7);
+
+      if(c.isGhost){
+        svg.push('<polygon points="'+pts+'" fill="#f4f3ef" stroke="#d3d1ca" stroke-width="1.1" stroke-dasharray="3,2.5"><title>Switzerland — not an EU member</title></polygon>');
+        svg.push('<text x="'+cx+'" y="'+(cy+3.5)+'" text-anchor="middle" font-size="9" font-weight="700" fill="#bfbdb6">CH</text>');
+        return;
+      }
+      var fill = c.checkedZero ? '#c7ddce' : colorFor(c.n);
+      var strokeCol = c.checkedZero ? '#6b9c81' : '#ffffff';
+      var dashAttr = c.checkedZero ? ' stroke-dasharray="2.5,1.5"' : '';
+      svg.push('<polygon points="'+pts+'" fill="'+fill+'" stroke="'+strokeCol+'" stroke-width="2.2"'+dashAttr+'>'
+             + '<title>'+c.code+(c.n?': '+c.n+' incident'+(c.n===1?'':'s'):(c.checkedZero?': searched, no confirmed incidents':': no confirmed incidents'))+'</title></polygon>');
+      svg.push('<text x="'+cx+'" y="'+(cy+3.6)+'" text-anchor="middle" font-size="9.8" font-weight="800" '
+             + 'fill="'+(c.n?'#ffffff':'#96948d')+'" style="pointer-events:none;letter-spacing:.02em;">'+c.code+'</text>');
+    });
+    svg.push('</g></svg>');
+    document.getElementById("teaser-map").innerHTML = svg.join("");
+  }
+
+  function buildInstitutions(){
+    var html = INSTITUTIONS.map(function(inst){
+      var r = 13, pad = 6, box = (r+pad)*2;
+      var cx = box/2, cy = box/2;
+      var pts = hexPoints(cx, cy, r);
+      var dash = inst.dashed ? ' stroke-dasharray="3,2"' : '';
+      var svg = '<svg width="'+box+'" height="'+box+'" viewBox="0 0 '+box+' '+box+'">'
+              + '<polygon points="'+pts+'" fill="'+colorFor(inst.n)+'" stroke="'+inst.stroke+'" stroke-width="2.2"'+dash+'/>'
+              + '<text x="'+cx+'" y="'+(cy+3)+'" text-anchor="middle" font-size="7.6" font-weight="800" fill="#fff">'+inst.code+'</text>'
+              + '</svg>';
+      return '<div class="inst-item">'+svg
+           + '<div class="inst-text"><div class="nm">'+inst.name+'</div>'
+           + '<div class="ct">'+inst.n+' incidents</div></div></div>';
+    }).join("");
+    document.getElementById("inst-items").innerHTML = html;
+  }
+
+  function buildActors(){
+    var total = ACTORS.reduce(function(s,a){return s+a[1];}, 0);
+    document.getElementById("teaser-stackbar").innerHTML = ACTORS.map(function(a){
+      var w = (a[1]/total*100).toFixed(1);
+      return '<div class="seg" style="width:'+w+'%;background:'+a[2]+'" title="'+a[0]+': '+a[1]+'"></div>';
+    }).join("");
+
+    document.getElementById("teaser-actor-legend").innerHTML = ACTORS.map(function(a){
+      var pct = Math.round(a[1]/total*100);
+      return '<div class="al-item"><span class="al-dot" style="background:'+a[2]+'"></span>'
+           + '<span class="al-label">'+a[0]+'</span><span class="al-count">'+a[1]+' ('+pct+'%)</span></div>';
+    }).join("");
+
+    document.getElementById("teaser-kickers").innerHTML =
+      '<div class="kicker"><div class="n">'+TOTAL_DOSSIERS+'</div><div class="l">dossiers</div></div>'
+    + '<div class="kicker"><div class="n">'+ACTORS.length+'</div><div class="l">actors</div></div>'
+    + '<div class="kicker"><div class="n">'+Math.round(ACTORS[0][1]/total*100)+'%</div><div class="l">Russia</div></div>';
+  }
+
+  buildMap();
+  buildInstitutions();
+  buildActors();
+
+  var wasStacked = window.innerWidth <= STACK_BREAKPOINT;
+  window.addEventListener("resize", function(){
+    var isStacked = window.innerWidth <= STACK_BREAKPOINT;
+    if(isStacked !== wasStacked){ wasStacked = isStacked; buildMap(); }
+  });
+})();
+</script>
+</body>
+</html>

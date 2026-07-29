@@ -1,0 +1,1761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>External Undermining — dossier explorer</title>
+<style>
+  :root{
+    --ink:#2c2c2a; --mute:#5f5e5a; --faint:#888781;
+    --accent:#185fa5; --accent-soft:#dce8f5;
+    --line:#c9c8c1; --line-soft:#e6e5e0;
+    --high:#a32d2d; --medium:#eb6834; --low:#1baf7a;
+    --bg:#fbfaf8; --panel:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  }
+  .wrap{ max-width:980px; margin:0 auto; padding:28px 20px 60px; }
+  .eyebrow{ font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); font-weight:700; }
+  h1{ font-size:26px; margin:4px 0 2px; letter-spacing:-.01em; }
+  .subtitle{ color:var(--accent); font-size:15px; margin:0 0 18px; font-weight:600;}
+  .lede{ font-size:14.5px; line-height:1.65; color:var(--ink); max-width:640px; margin:0 0 26px; }
+  .lede b{ font-weight:600; }
+
+  /* ---------- landing / map ---------- */
+  #mapstage{ display:block; }
+  .map-shell{
+    background:var(--panel); border:1px solid var(--line-soft); border-radius:10px;
+    padding:18px 18px 10px; margin-bottom:20px;
+  }
+  .map-caption{ font-size:11px; color:var(--faint); font-style:italic; margin:8px 2px 0; }
+  svg.hexmap{ width:100%; height:auto; display:block; }
+  .hex{ cursor:default; transition:opacity .15s ease; }
+  .hex.live{ cursor:pointer; }
+  .hex.live:hover{ opacity:.85; }
+  .hex.eu polygon{ stroke:#f4b942; stroke-width:2.5; }
+  .hex.nato polygon{ stroke:#3d5a80; stroke-width:2.5; stroke-dasharray:4,2; }
+  .hexlabel{ font-size:9.5px; font-weight:700; fill:#fff; pointer-events:none; }
+  .hexlabel.dim{ fill:#8b8a85; }
+  .hexcount{ font-size:8px; fill:#fff; opacity:.9; pointer-events:none; }
+
+  .legend-row{ display:flex; flex-wrap:wrap; gap:18px; align-items:center; margin:14px 2px 4px; font-size:11.5px; color:var(--mute);}
+  .legend-row .sw{ display:inline-flex; align-items:center; gap:6px; }
+  .legend-row i{ width:14px; height:14px; border-radius:3px; display:inline-block; }
+  .legend-row i.euring{ background:transparent; border:2.5px solid #f4b942; width:10px; height:10px; }
+
+  .tiles{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:10px; margin-top:6px;}
+  .tile{ border:1px solid var(--line-soft); border-radius:8px; padding:12px 14px; background:var(--panel); }
+  .tile.live{ border-color:var(--accent); cursor:pointer; }
+  .tile.live:hover{ background:var(--accent-soft); }
+  .tile.eu-tile{ border-color:#f4b942; }
+  .tile.nato-tile{ border-color:#3d5a80; }
+  .tile .land{ font-weight:700; font-size:13.5px; }
+  .tile .stat{ font-size:11.5px; color:var(--mute); margin-top:3px; }
+  .tile.dim .land{ color:var(--faint); }
+  .tile.dim .stat{ color:var(--faint); }
+
+  .actor-summary-shell{ background:var(--panel); border:1px solid var(--line-soft); border-radius:10px; padding:18px 20px; margin-bottom:20px; }
+  .actor-summary-shell h2{ font-size:15px; margin:0 0 3px; }
+  .actor-summary-shell .sub{ font-size:12px; color:var(--mute); margin-bottom:16px; }
+  .as-row{ display:grid; grid-template-columns:170px 1fr 70px; align-items:center; gap:12px; margin-bottom:10px; }
+  .as-label{ font-size:12.5px; font-weight:700; color:var(--ink); }
+  .as-track{ background:var(--line-soft); border-radius:5px; height:14px; overflow:hidden; }
+  .as-fill{ height:100%; background:var(--accent); border-radius:5px 0 0 5px; }
+  .as-fill.muted{ background:#9fb8cf; }
+  .as-count{ font-size:12px; color:var(--mute); text-align:right; }
+  .as-caption{ font-size:11px; color:var(--faint); font-style:italic; margin-top:10px; }
+
+  /* ---------- dossier ---------- */
+  #dossier{ display:none; }
+  .backlink{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--accent); cursor:pointer; margin-bottom:16px; font-weight:600; }
+  .backlink:hover{ text-decoration:underline; }
+
+  .dossier-head{ display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px; border-bottom:2px solid var(--ink); padding-bottom:12px; margin-bottom:18px;}
+  .dossier-head h2{ margin:0; font-size:24px; }
+  .dossier-head .meta{ font-size:12px; color:var(--mute); }
+
+  .statrow{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:22px; }
+  .stat{ background:var(--panel); border:1px solid var(--line-soft); border-radius:8px; padding:12px 14px; }
+  .stat .n{ font-size:22px; font-weight:700; color:var(--accent); }
+  .stat .l{ font-size:11px; color:var(--mute); margin-top:2px; }
+
+  .tabs{ display:flex; gap:2px; border-bottom:1px solid var(--line); margin-bottom:18px; flex-wrap:wrap;}
+  .tab{ padding:9px 14px; font-size:12.5px; font-weight:600; color:var(--mute); cursor:pointer; border-bottom:2px solid transparent; }
+  .tab.active{ color:var(--accent); border-bottom-color:var(--accent); }
+  .tabpanel{ display:none; }
+  .tabpanel.active{ display:block; }
+
+  /* scale */
+  .bars{ display:flex; align-items:flex-end; gap:16px; height:110px; margin:6px 0 22px; padding:0 4px; border-bottom:1px solid var(--line-soft);}
+  .bar-col{ display:flex; flex-direction:column; align-items:center; gap:6px; width:52px; }
+  .bar{ width:30px; background:var(--accent); border-radius:3px 3px 0 0; }
+  .bar-n{ font-size:11px; font-weight:700; color:var(--ink); }
+  .bar-y{ font-size:10.5px; color:var(--mute); }
+
+  .timeline{ list-style:none; margin:0; padding:0; }
+  .tl-item{ display:grid; grid-template-columns:96px 12px 1fr; gap:10px; margin-bottom:2px; }
+  .tl-date{ font-size:11px; color:var(--mute); text-align:right; padding-top:2px; }
+  .tl-dot-col{ display:flex; flex-direction:column; align-items:center; }
+  .tl-dot{ width:10px; height:10px; border-radius:50%; margin-top:3px; flex:0 0 auto; }
+  .tl-line{ width:1px; flex:1; background:var(--line); margin-top:2px; }
+  .tl-body{ padding-bottom:18px; }
+  .tl-id{ font-size:10px; color:var(--faint); font-weight:700; letter-spacing:.03em; }
+  .tl-title{ font-size:13px; font-weight:700; margin:2px 0 3px; }
+  .tl-desc{ font-size:12.5px; line-height:1.55; color:var(--ink); }
+  .badges{ margin-top:6px; display:flex; gap:6px; flex-wrap:wrap; }
+  .badge{ font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; color:#fff; }
+  .badge.cert-high{ background:var(--accent); }
+  .badge.cert-medium{ background:#7aa8cf; }
+  .badge.cert-low{ background:#c9d8e8; color:var(--ink); }
+  .badge-outline{ font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; border:1px solid var(--line); color:var(--mute); }
+
+  /* targets */
+  .target-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; }
+  .target-card{ border:1px solid var(--line-soft); border-radius:8px; padding:12px 14px; background:var(--panel); }
+  .target-card .k{ font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); font-weight:700;}
+  .target-card .v{ font-size:13.5px; font-weight:700; margin:3px 0 4px; }
+  .target-card .n{ font-size:12px; color:var(--mute); line-height:1.5; }
+
+  /* actors */
+  .actor-card{ border:1px solid var(--line-soft); border-radius:10px; padding:16px; background:var(--panel); margin-bottom:14px; }
+  .actor-card h3{ margin:0 0 4px; font-size:16px; }
+  .actor-card .sub{ font-size:12px; color:var(--mute); margin-bottom:10px; }
+  .net-row{ display:flex; align-items:center; gap:10px; font-size:12.5px; padding:8px 0; border-top:1px dashed var(--line-soft); }
+  .net-row:first-of-type{ border-top:none; }
+  .net-name{ font-weight:700; min-width:150px; }
+  .net-desc{ color:var(--mute); flex:1; }
+  .arrow{ color:var(--faint); }
+
+  ul.plain{ margin:0; padding-left:18px; }
+  ul.plain li{ font-size:13px; line-height:1.7; margin-bottom:4px; }
+
+  table.src{ width:100%; border-collapse:collapse; font-size:12px; }
+  table.src th{ text-align:left; background:var(--line-soft); padding:7px 8px; font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--mute); }
+  table.src td{ padding:8px 8px; border-bottom:1px solid var(--line-soft); vertical-align:top; }
+  table.src a{ color:var(--accent); text-decoration:none; font-weight:600; }
+  table.src a:hover{ text-decoration:underline; }
+  table.src a.ext::after{ content:" ↗"; font-size:10px; }
+
+  .callout{ background:#fbf3e6; border:1px solid #ecd9b4; border-radius:8px; padding:12px 14px; font-size:12.5px; line-height:1.6; color:#6b5219; margin-bottom:18px;}
+  .empty-state{ background:#f6f5f2; border:1px dashed var(--line); border-radius:8px; padding:14px 16px; font-size:12.5px; line-height:1.6; color:var(--mute); font-style:italic; }
+
+  .footer{ margin-top:34px; padding-top:14px; border-top:1px solid var(--line-soft); font-size:11px; color:var(--faint); line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============================================================ LANDING -->
+  <div id="mapstage">
+    <div class="eyebrow">Aantekeningen in de marge — dashboard</div>
+    <h1>External Undermining</h1>
+    <div class="subtitle">Dossier explorer, by member state and by the EU level</div>
+    <p class="lede">A source-based dossier overview of external undermining of EU democratic processes, modelled on the Lobby Dashboard. <b>All 27 EU member states, the EU level and NATO have a dossier</b> — including Luxembourg, whose dossier documents a searched-but-not-found result rather than an unexamined gap (dashed outline on the map). The entry outlined in gold is the EU-institutional case; the entry with a dashed steel-blue outline is NATO. Both are alliance/institution-level entries, not member states.</p>
+
+    <div class="map-shell">
+      <div id="hexmap-container"></div>
+      <div class="legend-row">
+        <span class="sw"><i style="background:#0d3a66"></i> 6+ incidents</span>
+        <span class="sw"><i style="background:#185fa5"></i> 3–5 incidents</span>
+        <span class="sw"><i style="background:#7aa8cf"></i> 1–2 incidents</span>
+        <span class="sw"><i style="background:#dcdad4"></i> no confirmed incidents (not searched or below bar)</span>
+        <span class="sw"><i style="background:#c7ddce; border:1.5px dashed #6b9c81;"></i> searched, none found (e.g. Luxembourg)</span>
+        <span class="sw"><i class="euring"></i> EU institutional level</span>
+        <span class="sw"><i style="border:2.5px dashed #3d5a80; width:10px; height:10px; background:transparent; border-radius:2px;"></i> NATO</span>
+      </div>
+      <div class="map-caption">Schematic grid cartogram (equal cell size per entry, not exact borders) — based on the 'Summary' tab of the incident database. Click a coded tile for the full dossier. NATO is included as its own entry because the alliance defends member-state territory collectively, unlike international organisations merely hosted on EU soil (e.g. OPCW), which are treated as out of scope for this dashboard.</div>
+    </div>
+
+    <div class="actor-summary-shell">
+      <h2>Actors across all coded dossiers</h2>
+      <div class="sub" id="as-subtitle">Aggregated from the Actors tab of every dossier built so far.</div>
+      <div id="actor-summary-rows"></div>
+      <div class="as-caption" id="as-caption"></div>
+    </div>
+
+    <div class="tiles" id="tiles"></div>
+  </div>
+
+  <!-- ============================================================ DOSSIER (rendered dynamically) -->
+  <div id="dossier">
+    <div class="backlink" onclick="showMap()">← Back to overview</div>
+
+    <div class="dossier-head">
+      <div>
+        <div class="eyebrow" id="d-eyebrow">Dossier</div>
+        <h2 id="d-title">—</h2>
+      </div>
+      <div class="meta" id="d-meta"></div>
+    </div>
+
+    <div class="statrow" id="d-stats"></div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="scale">Scale &amp; timeline</div>
+      <div class="tab" data-tab="targets">Targets</div>
+      <div class="tab" data-tab="actors">Actors</div>
+      <div class="tab" data-tab="aims">Aims</div>
+      <div class="tab" data-tab="sources">Sources &amp; methodology</div>
+    </div>
+
+    <div class="tabpanel active" id="panel-scale">
+      <div class="bars" id="d-bars"></div>
+      <ul class="timeline" id="d-timeline"></ul>
+    </div>
+
+    <div class="tabpanel" id="panel-targets">
+      <div class="target-grid" id="d-targets"></div>
+    </div>
+
+    <div class="tabpanel" id="panel-actors">
+      <div id="d-actors"></div>
+      <div class="callout" id="d-actor-note"></div>
+    </div>
+
+    <div class="tabpanel" id="panel-aims">
+      <ul class="plain" id="d-aims"></ul>
+      <div class="map-caption" style="margin-top:14px;">This summary only rephrases what the sources themselves describe as the intended effect; no independent interpretation has been added.</div>
+    </div>
+
+    <div class="tabpanel" id="panel-sources">
+      <table class="src">
+        <tr><th>Source</th><th>Nature</th><th>Certainty of attribution</th></tr>
+        <tbody id="d-sources"></tbody>
+      </table>
+      <div class="callout" id="d-source-note" style="margin-top:16px;"></div>
+    </div>
+
+    <div class="footer">Aantekeningen in de marge — External Undermining dashboard. Full sourcing per case is in the 'Incidents' tab of the accompanying incident database; the methodological memorandum sets out the definition, coding rules and limitations in full. Compiled by Aantekeningen in de marge, with extensive editorial and visual input from Claude, Anthropic's AI assistant.</div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+
+  // ---- map grid: EU member states + a separate EU-institutional entry ----
+  var COUNTRIES = [
+    {code:"IE", name:"Ireland", col:0, row:2}, {code:"DK", name:"Denmark", col:4, row:2},
+    {code:"LT", name:"Lithuania", col:6, row:2}, {code:"LV", name:"Latvia", col:7, row:2},
+    {code:"EE", name:"Estonia", col:6, row:1}, {code:"SE", name:"Sweden", col:5, row:0},
+    {code:"FI", name:"Finland", col:6, row:0},
+    {code:"BE", name:"Belgium", col:2, row:3}, {code:"NL", name:"Netherlands", col:3, row:3},
+    {code:"DE", name:"Germany", col:4, row:3}, {code:"PL", name:"Poland", col:5, row:3},
+    {code:"FR", name:"France", col:2, row:4}, {code:"LU", name:"Luxembourg", col:3, row:4, checkedZero:true},
+    {code:"CZ", name:"Czechia", col:5, row:4}, {code:"SK", name:"Slovakia", col:6, row:4},
+    {code:"PT", name:"Portugal", col:0, row:5}, {code:"ES", name:"Spain", col:1, row:5},
+    {code:"IT", name:"Italy", col:3, row:5}, {code:"AT", name:"Austria", col:4, row:5},
+    {code:"HU", name:"Hungary", col:5, row:5}, {code:"RO", name:"Romania", col:6, row:5},
+    {code:"SI", name:"Slovenia", col:4, row:6}, {code:"HR", name:"Croatia", col:5, row:6},
+    {code:"BG", name:"Bulgaria", col:8, row:6},
+    {code:"MT", name:"Malta", col:2, row:7},
+    {code:"GR", name:"Greece", col:7, row:8}, {code:"CY", name:"Cyprus", col:10, row:8},
+    {code:"CH", name:"Switzerland — not an EU member, out of scope", col:4, row:4, isGhost:true},
+    {code:"EU", name:"EU institutions", col:9, row:3, isEU:true},
+    {code:"NATO", name:"NATO", col:9, row:1, isNATO:true}
+  ];
+
+  // ---- dossier data (mirrors the Excel workbook) ----
+  var DOSSIERS = {
+    DE: {
+      title: "Germany", eyebrow: "Dossier — member state",
+      meta: "Period 2022–2025 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [7,"documented incidents"], [1,"attributed state actor (Russia)"], [4,'incidents rated "high" severity'], [6,"underlying sources"] ],
+      years: [["2022",1],["2023",0],["2024",4],["2025",2]],
+      timeline: [
+        {id:"DE-2022-01", date:"2022 →", title:"Establishment of the Doppelganger network", cert:"high", sev:"high",
+         desc:"Cloned versions of established media outlets spread pro-Russian narratives; Meta attributed the operation in December 2022 to Russian companies, after which the EU imposed sanctions."},
+        {id:"DE-2024-01", date:"Feb. 2024", title:"Imitation websites targeting German media/government", cert:"medium", sev:"medium",
+         desc:"Cluster of imitation websites (incl. Spiegel, Stern, FAZ, and government pages), identified by Hiveforce Labs and SentinelOne."},
+        {id:"DE-2024-02", date:"Spring 2024", title:"Doppelganger activity around the EP elections", cert:"high", sev:"high",
+         desc:"Country-tailored narratives on migration, energy/climate and the war in Ukraine, aimed at promoting or discrediting parties and candidates."},
+        {id:"DE-2024-03", date:"2024", title:"73 FIMI cases against Germany (EEAS annual figure)", cert:"medium", sev:"high",
+         desc:"Concentrated around political events, international visits and the farmers' protests, per the 3rd EEAS report."},
+        {id:"DE-2024-04", date:"2024", title:"Doppelganger episode: Baerbock / AfD / BSW", cert:"medium", sev:"medium",
+         desc:"Impersonation of, and harm to, a Green party politician, combined with content supporting the AfD and BSW."},
+        {id:"DE-2025-01", date:"23 Feb. 2025", title:"BfV: targeted influence on the Bundestag election", cert:"high", sev:"high",
+         desc:"Four-phase influence model; narratives favourable to some parties, unfavourable to others, plus disinformation about election integrity around polling day."},
+        {id:"DE-2025-02", date:"Spring 2025", title:"Matryoshka campaign", cert:"medium", sev:"medium",
+         desc:"Linking of Western media X accounts to amplify reach; narratives on East-West division and allegedly declining CDU prospects."}
+      ],
+      targets: [
+        ["Election","Bundestag election, 23 Feb. 2025","Four-phase influence model (BfV); narratives aimed at specific parties and at the integrity of the election itself."],
+        ["Election","2024 European Parliament elections","Doppelganger/RRN Media, targeting voters in Germany and France; 42 cases detected EU-wide by the EEAS around the vote."],
+        ["Institution","German coalition government","Consistent target per the 3rd EEAS report, with peaks around political events and international visits."],
+        ["Public debate","2024 farmers' protests","Subject of targeted disinformation within the total of 73 EEAS-recorded cases for Germany in 2024."],
+        ["Politicians / parties","Annalena Baerbock; AfD; BSW","One Doppelganger episode combined impersonation of and harm to a Green politician with content supporting the AfD and BSW."],
+        ["Public narrative","East-West relations; CDU","Matryoshka campaign around the 2025 Bundestag election, targeting polarisation between eastern and western Germany."]
+      ],
+      actors: [{
+        name: "Russia",
+        sub: "Attributed in all seven recorded cases for Germany — by EEAS Stratcom, the Bundesamt für Verfassungsschutz (BfV), Meta, and private cybersecurity researchers.",
+        networks: [
+          ["Doppelganger / RRN Media", "Media-cloning network (incl. Spiegel, Stern, FAZ), active since 2022; sanctioned by the EU following attribution by Meta."],
+          ["Matryoshka campaign", "Links Western media X accounts to amplify reach; drives polarising East-West narratives."],
+          ["Unspecified FIMI ecosystem", "Aggregated EEAS count (73 cases, 2024) without a one-to-one network attribution per case."]
+        ],
+        certHigh: 4, certMedium: 3
+      }],
+      actorNote: "None of the seven cases is attributed in the underlying sources to a state other than Russia. This may partly reflect reporting bias: German and EU bodies report primarily on Russian FIMI activity, which does not rule out activity by other actors (for example China) but may leave it under-documented.",
+      aims: [
+        ["Support for specific parties/individuals","narratives that portray Russia-favourable parties positively and discredit unfavourable ones (BfV, four-phase model, 2025 Bundestag election)."],
+        ["Polarisation","reinforcing societal fault lines, including between eastern and western Germany (Matryoshka campaign)."],
+        ["Undermining trust in the election itself","disinformation about the integrity of the voting process around election day (BfV)."],
+        ["Damage to individual politicians","impersonation of, and harm to, a Green party politician, combined with supportive content for the AfD and BSW (Doppelganger episode, Project Athena)."],
+        ["Weakening support for broader policy lines","narratives on migration, energy/climate and the war in Ukraine during the 2024 European election campaign (EEAS Stratcom)."]
+      ],
+      sources: [
+        ["EEAS — Technical Report \"Doppelganger strikes back\" (2024)","EU institutional monitoring","High","https://euvsdisinfo.eu/uploads/2024/04/EEAS-DataTeam-TechnicalReport-FINAL.pdf"],
+        ["EEAS — 3rd Report on FIMI Threats (March 2025)","EU institutional annual report","Medium–high (aggregated figure)","https://www.eeas.europa.eu/sites/default/files/documents/2025/EEAS-3nd-ThreatReport-March-2025-05-Digital-HD.pdf"],
+        ["Bundesamt für Verfassungsschutz (BfV), 2025","National security service","High","https://www.verfassungsschutz.de/SharedDocs/hintergruende/DE/spionage-und-proliferationsabwehr/gefaehrdung-der-bundestagswahl-2025-durch-unzulaessige-auslaendische-einflussnahme.html"],
+        ["Meta Adversarial Threat Report (Dec. 2022)","Platform attribution","High","https://euvsdisinfo.eu/uploads/2024/04/EEAS-DataTeam-TechnicalReport-FINAL.pdf"],
+        ["Hiveforce Labs / SentinelOne (2024)","Private cybersecurity research","Medium","https://euvsdisinfo.eu/uploads/2024/04/EEAS-DataTeam-TechnicalReport-FINAL.pdf"],
+        ["Project Athena, \"Decoding FIMI\" (2025)","Academic publication","Medium","https://project-athena.eu/decoding-fimi-a-complex-interrelation-with-disinformation/"],
+        ["Der Spiegel / news.de, BfV response to parliamentary question (2025)","Journalism + parliamentary source confirmation","Medium","https://www.news.de/politik/859766887/gefaelschte-posts-vor-landtagswahlen-spaltung-als-ziel-landtagswahl-news-der-dpa-aktuell-zu-wahl-landtag-und-internet/1/"]
+      ],
+      sourceNote: "This dossier page records only publicly documented and attributed cases. It does not give a complete picture of external undermining directed at Germany, only of what has been published by the bodies named above. See the feasibility and sources memo for the full methodological discussion."
+    },
+
+    EU: {
+      title: "EU institutions", eyebrow: "Dossier — EU institutional level",
+      meta: "Period 2024 · cases where an EU institution or EU-wide process, rather than one member state, is the identifiable target",
+      stats: [ [2,"documented incidents"], [1,"attributed state actor (Russia)"], [1,'incident rated "high" severity'], [1,"underlying source (EEAS)"] ],
+      years: [["2022",0],["2023",0],["2024",2],["2025",0]],
+      timeline: [
+        {id:"EU-2024-01", date:"Jun. 2024", title:"42 FIMI cases targeting the European Parliament elections", cert:"high", sev:"high",
+         desc:"The EEAS detected 42 cases of Russian FIMI activity directly targeting the 2024 European Parliament elections as an EU-wide process, escalating before the vote, peaking 6–9 June, and continuing afterwards."},
+        {id:"EU-2024-02", date:"2024", title:"Narrative attacks on EU leadership", cert:"medium", sev:"medium",
+         desc:"FIMI operations targeted senior EU leadership, including European Council President Charles Michel, with contradictory narratives portraying the EU as both weak and interfering in third countries' affairs."}
+      ],
+      targets: [
+        ["Election","2024 European Parliament elections (EU-wide)","42 cases of Russian FIMI activity detected across the electoral process as a whole, not attributed to a single member state."],
+        ["Institution / leadership","European Council presidency (Charles Michel)","Target of narrative attacks portraying the EU as simultaneously weak and interfering, per the 3rd EEAS report."]
+      ],
+      actors: [{
+        name: "Russia",
+        sub: "Attributed in both EU-level cases by EEAS Stratcom.",
+        networks: [
+          ["Doppelganger / RRN Media", "Same cross-border network active at member-state level, deployed here against the EU-wide electoral process."],
+          ["Unspecified FIMI ecosystem", "Narrative attacks on EU leadership, reported as an aggregate characterisation rather than a single attributed campaign."]
+        ],
+        certHigh: 1, certMedium: 1
+      }],
+      actorNote: "The EU-level dossier is thin by design: most FIMI activity is reported against member states individually, and only cases explicitly framed by the source as targeting an EU institution or an EU-wide process (rather than a national audience) are coded here. A larger share may exist but not be reported at this level of aggregation.",
+      aims: [
+        ["Undermining the EU-wide electoral process","sustained, escalating activity timed to the European Parliament elections themselves, rather than to any single national campaign."],
+        ["Delegitimising EU leadership","contradictory narratives designed to portray the EU as both ineffective and overreaching, undermining public confidence in EU institutions as such."]
+      ],
+      sources: [
+        ["EEAS — 3rd Report on FIMI Threats (March 2025)","EU institutional annual report","High","https://www.eeas.europa.eu/sites/default/files/documents/2025/EEAS-3nd-ThreatReport-March-2025-05-Digital-HD.pdf"]
+      ],
+      sourceNote: "This dossier currently rests on a single source family (the EEAS FIMI report series). Expanding it would require systematically distinguishing, within each annual report, cases framed against an EU institution or EU-wide process from the much larger set of cases framed against individual member states."
+    },
+
+    NATO: {
+      title: "NATO", eyebrow: "Dossier — alliance level",
+      meta: "Period 2024-2025 · cases where NATO itself, as the collective defender of member-state territory, is the identifiable target",
+      stats: [ [2,"documented incidents"], [1,"attributed actor grouping (Russia/China FIMI ecosystem)"], [0,'incidents rated "high" severity'], [2,"underlying sources"] ],
+      years: [["2022",0],["2023",0],["2024",1],["2025",1]],
+      timeline: [
+        {id:"NATO-2024-01", date:"2024", title:"Named among ~200 organisations targeted by FIMI", cert:"medium", sev:"medium",
+         desc:"The EEAS's mapping of FIMI infrastructure found close to 200 organisations targeted by FIMI operations in 2024, naming NATO specifically alongside traditional media, NGOs and academic institutions, without a per-incident breakdown for the alliance."},
+        {id:"NATO-2025-01", date:"2025", title:"Diplomatic corps targeted to weaken NATO's reputation", cert:"medium", sev:"medium",
+         desc:"The EEAS's fourth annual FIMI report found attackers focused on the diplomatic corps and national representatives to international institutions such as NATO, aiming specifically to weaken the organisation's reputation."}
+      ],
+      targets: [
+        ["Organisational reputation","NATO as an institution","Named among close to 200 organisations targeted by FIMI activity in 2024, alongside media, NGOs and academia."],
+        ["Diplomatic representation","National representatives and diplomatic corps to NATO","Targeted narrative attacks aimed at weakening the alliance's standing, per the 2025 EEAS report."]
+      ],
+      actors: [{
+        name: "Russia/China FIMI ecosystem",
+        sub: "Both cases are attributed at the level of the general FIMI ecosystem the EEAS associates mainly with Russia and secondarily China, rather than to a single named campaign as with Doppelganger.",
+        networks: [
+          ["Unspecified FIMI infrastructure", "Reported as an aggregate characterisation across close to 200 targeted organisations, not individually attributed per organisation."]
+        ],
+        certHigh: 0, certMedium: 2
+      }],
+      actorNote: "This is the thinnest dossier of the set by design: unlike Doppelganger's country-level operations, attacks on NATO are reported by the EEAS only in aggregate terms, without the case-level detail available for member-state dossiers. NATO earns its own entry here because, unlike organisations merely hosted on EU territory (e.g. the OPCW in The Hague), NATO's core function is the collective defence of member-state territory — its erosion has a direct bearing on the security guarantees underpinning EU member states, distinct from attacks on the EU's own democratic process.",
+      aims: [
+        ["Undermining confidence in collective defence","aggregate targeting of the organisation itself alongside member states' own information spaces (EEAS, 2024)."],
+        ["Delegitimising NATO's diplomatic representation","narrative attacks on national representatives to the alliance, aimed at weakening NATO's reputation directly (EEAS, 2025)."]
+      ],
+      sources: [
+        ["EEAS, 'Inside the infrastructure of FIMI operations' (2025)","EU institutional monitoring","Medium","https://www.eeas.europa.eu/eeas/inside-infrastructure-foreign-information-manipulation-and-interference-fimi_en"],
+        ["4th EEAS Report on FIMI Threats (March 2026)","EU institutional annual report","Medium","https://euvsdisinfo.eu/eeas-4th-fimi-threat-report-march-2026/"]
+      ],
+      sourceNote: "Both entries come from the same EEAS report family and describe NATO only in aggregate terms. A credible expansion of this dossier would need case-level reporting on NATO specifically, which is not yet publicly available at the same granularity as the Doppelganger-focused member-state dossiers."
+    },
+
+    NL: {
+      title: "Netherlands", eyebrow: "Dossier — member state",
+      meta: "Period 2014–2024 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [4,"documented incidents"], [2,"attributed state actors (Russia, China)"], [2,'incidents rated "high" severity'], [5,"underlying sources"] ],
+      years: [["2014",1],["2022",2],["2023",0],["2024",1],["2025",0]],
+      timeline: [
+        {id:"NL-2014-01", date:"2014 →", title:"Low-level online influence around the MH17 narrative", cert:"high", sev:"medium",
+         desc:"Since the downing of flight MH17 in 2014, the AIVD has observed recurring, low-effect Russian attempts at online influence in Dutch on social media, aimed at complicating the public narrative around the MH17 investigation."},
+        {id:"NL-2022-01", date:"2018–2022", title:"Undeclared Chinese 'overseas service stations'", cert:"high", sev:"high",
+         desc:"Unofficial Chinese offices in Amsterdam and Rotterdam, ostensibly administrative, also used according to journalists' sources to monitor and pressure critics of the Chinese government in the Netherlands. The government ordered immediate closure in November 2022."},
+        {id:"NL-2022-02", date:"Nov. 2022", title:"Dreigingsbeeld Statelijke Actoren 2: diaspora targeting", cert:"high", sev:"medium",
+         desc:"Joint AIVD/MIVD/NCTV threat assessment identifying Iran, China and Russia as conducting intelligence and influence activity directed at their diaspora communities in the Netherlands."},
+        {id:"NL-2024-01", date:"2023–2024", title:"Voice of Europe financing network", cert:"medium", sev:"high",
+         desc:"Czech intelligence identified a Russia-financed network, originally founded in the Netherlands as Voice of Europe, alleged to have paid politicians in six member states, including the Netherlands, ahead of the June 2024 European Parliament elections. No Dutch individual has been officially named."}
+      ],
+      targets: [
+        ["Public opinion","MH17 investigation narrative","Recurring low-effect online influence attempts in Dutch, aimed at complicating the public understanding of the MH17 inquiry."],
+        ["Diaspora / rule of law","Chinese dissidents and diaspora in the Netherlands","Unofficial Chinese 'service stations' used to monitor and pressure critics of the Chinese government; closure ordered by the Dutch government."],
+        ["Diaspora communities","Iranian, Chinese and Russian diaspora in the Netherlands","Intelligence and influence activity intensifying around conflicts or elections in the country of origin, per the joint AIVD/MIVD/NCTV assessment."],
+        ["Election","2024 European Parliament elections","Alleged covert financing of Dutch politicians via the Voice of Europe network, ahead of the June 2024 vote."]
+      ],
+      actors: [
+        {
+          name: "Russia",
+          sub: "Attributed in two of four recorded cases — the MH17-related online influence (AIVD) and the Voice of Europe financing network (Czech BIS).",
+          networks: [
+            ["MH17 online influence", "Diffuse, low-intensity social-media activity in Dutch, ongoing since 2014."],
+            ["Voice of Europe", "Prague-based, Russia-financed outlet originally founded in the Netherlands; alleged to have paid politicians in six member states, linked to Viktor Medvedchuk."]
+          ],
+          certHigh: 1, certMedium: 1
+        },
+        {
+          name: "China",
+          sub: "Attributed in one case — the unofficial 'police stations' in Amsterdam and Rotterdam, confirmed by the Dutch Ministry of Foreign Affairs.",
+          networks: [
+            ["Overseas service stations", "Undeclared offices linked to Fuzhou and Lishui/Qingtian public security bureaus, active in the Netherlands from 2018 to their closure in 2022."]
+          ],
+          certHigh: 1, certMedium: 0
+        },
+        {
+          name: "Multiple actors (Iran, China, Russia)",
+          sub: "Jointly characterised in the AIVD/MIVD/NCTV Dreigingsbeeld Statelijke Actoren 2 (Nov. 2022) as targeting diaspora communities, without a single-state attribution per case.",
+          networks: [
+            ["Diaspora-focused intelligence activity", "Reported as a shared pattern across the three states rather than one attributed network."]
+          ],
+          certHigh: 0, certMedium: 1
+        }
+      ],
+      actorNote: "Unlike the Germany dossier, the Netherlands set spans three different actors and four distinct activity types (disinformation, covert influence, diaspora targeting, financing), which may reflect a genuinely more varied threat picture, a broader Dutch reporting practice across AIVD, MIVD, NCTV and investigative journalism, or both.",
+      aims: [
+        ["Complicating an official investigation","low-level, sustained online narratives around MH17 aimed at the credibility of the international investigation (AIVD)."],
+        ["Monitoring and pressuring diaspora critics","unofficial Chinese offices used to track and intimidate dissidents living in the Netherlands (RTL Nieuws / Follow the Money)."],
+        ["Leveraging diaspora communities for influence","intelligence and influence activity directed at diaspora communities, intensifying around conflicts or elections abroad (AIVD/MIVD/NCTV)."],
+        ["Covertly financing sympathetic politicians","alleged payments to politicians ahead of the 2024 European Parliament elections, aimed at promoting pro-Russian and anti-Ukraine narratives (Czech BIS)."]
+      ],
+      sources: [
+        ["AIVD Jaarverslag 2018, \"Spionage en ongewenste buitenlandse inmenging\"","National security service, annual report","High","https://www.aivd.nl/onderwerpen/jaarverslagen/jaarverslag-2018/spionage"],
+        ["RTL Nieuws / Follow the Money investigation (2022)","Investigative journalism","High","https://www.ftm.eu/articles/china-illegal-police-stations-in-the-netherlands"],
+        ["Dutch Ministry of Foreign Affairs, closure order (Nov. 2022)","Government confirmation","High","https://nltimes.nl/2022/11/01/chinese-police-stations-netherlands-ordered-close-immediately"],
+        ["AIVD / MIVD / NCTV, Dreigingsbeeld Statelijke Actoren 2 (Nov. 2022)","Joint national security assessment","High","https://open.overheid.nl/documenten/ronl-f76b037c88b27bbede038d38647642b408245240/pdf"],
+        ["Czech Security Information Service (BIS), via NL Times (March 2024)","National security service (foreign) + journalism","Medium","https://nltimes.nl/2024/03/28/czech-officials-say-dutch-politicians-offered-cash-back-russian-propaganda"]
+      ],
+      sourceNote: "The financing case rests on attribution by a foreign intelligence service (Czech BIS); no Dutch authority has confirmed the identity of any politician involved, which is reflected in its medium rather than high certainty rating. See the feasibility and sources memo for the full methodological discussion."
+    },
+
+    FR: {
+      title: "France", eyebrow: "Dossier — member state",
+      meta: "Period 2023–2026 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [5,"documented incidents"], [1,"attributed state actor (Russia)"], [3,'incidents rated "high" severity'], [5,"underlying sources"] ],
+      years: [["2023",2],["2024",2],["2025",0],["2026",1]],
+      timeline: [
+        {id:"FR-2023-01", date:"Jun. 2023", title:"Fake government and media websites", cert:"high", sev:"high",
+         desc:"VIGINUM identified a campaign creating fake pages impersonating French government and media websites, involving Russian state-affiliated actors. The Foreign Ministry confirmed it had thwarted an attempt to impersonate its own website."},
+        {id:"FR-2023-02", date:"Oct.–Nov. 2023", title:"Star-of-David graffiti amplification", cert:"high", sev:"medium",
+         desc:"A network of over 1,000 bot accounts on X, affiliated with RRN/Doppelganger, amplified images of graffiti in Paris roughly 48 hours before the graffiti was first authentically reported, fuelling controversy and social tension."},
+        {id:"FR-2024-01", date:"Feb. 2024", title:"'Portal Kombat' network", cert:"high", sev:"high",
+         desc:"VIGINUM identified a network of 193 websites that published over 150,000 pieces of pro-Russian content, aimed at framing the war in Ukraine favourably to Russia."},
+        {id:"FR-2024-02", date:"Spring–summer 2024", title:"Doppelganger around EP and legislative elections, Olympics", cert:"high", sev:"high",
+         desc:"EEAS found France, alongside Germany, to be the primary target of country-tailored Doppelganger narratives during the EP election campaign, continuing into the French legislative elections and the Paris Olympics."},
+        {id:"FR-2026-01", date:"Feb. 2026", title:"Fabricated Macron–Epstein disinformation", cert:"medium", sev:"medium",
+         desc:"French authorities identified a pro-Russia disinformation campaign using fabricated email screenshots to falsely link President Macron to Jeffrey Epstein, using tactics consistent with the Storm-1516 network."}
+      ],
+      targets: [
+        ["Institution","French government and national media","Fake pages impersonating official websites, thwarted by the Foreign Ministry (VIGINUM, 2023)."],
+        ["Public opinion","Social cohesion, Israel-Gaza controversy","Bot-amplified graffiti images fuelling controversy and tension in Paris (Nov. 2023)."],
+        ["Public opinion","War in Ukraine narrative","193-website network denigrating Ukrainian resistance and framing the invasion favourably to Russia (Portal Kombat)."],
+        ["Election","2024 EP and French legislative elections","Country-tailored Doppelganger narratives, EU-wide network also active in Germany."],
+        ["Public event","Paris 2024 Olympics","Named alongside the elections as a primary target for disinformation ahead of and during the Games."],
+        ["Head of state","President Emmanuel Macron","Fabricated disinformation falsely linking the President to Jeffrey Epstein (Feb. 2026)."]
+      ],
+      actors: [{
+        name: "Russia",
+        sub: "Attributed in all five recorded cases for France — by VIGINUM (the French foreign-interference watchdog) and EEAS Stratcom.",
+        networks: [
+          ["RRN / Doppelganger", "Media-cloning and bot-amplification network, active against France since at least 2023, sharing infrastructure with the German and EU-wide operations."],
+          ["Portal Kombat", "193-website network publishing pro-Russian war narratives, identified by VIGINUM in early 2024."],
+          ["Storm-1516-linked tactics", "Fabricated-document disinformation technique, most recently used against President Macron in February 2026."]
+        ],
+        certHigh: 4, certMedium: 1
+      }],
+      actorNote: "France has the most consistently documented dossier of the member states coded so far, with a dedicated state watchdog (VIGINUM) publishing detections in near-real time. This likely reflects France's institutional reporting capacity as much as any difference in the underlying scale of Russian activity compared to less actively monitored member states.",
+      aims: [
+        ["Undermining trust in government communication","fake pages impersonating official French government and media websites (VIGINUM, 2023)."],
+        ["Inflaming social and religious tension","rapid amplification of divisive graffiti imagery before its authentic spread (RRN/Doppelganger, Nov. 2023)."],
+        ["Weakening support for Ukraine","sustained network of websites denigrating Ukrainian resistance and legitimising the invasion (Portal Kombat)."],
+        ["Shaping electoral and public-event narratives","country-tailored campaigns timed to the 2024 EP elections, French legislative elections and the Paris Olympics."],
+        ["Discrediting the head of state","fabricated disinformation linking President Macron to Jeffrey Epstein (Feb. 2026)."]
+      ],
+      sources: [
+        ["VIGINUM / French MEAE statement (Jun. 2023)","National foreign-interference watchdog","High","https://www.diplomatie.gouv.fr/en/french-foreign-policy/security-disarmament-and-non-proliferation/news/2023/article/statement-by-ms-catherine-colonna-foreign-digital-interference-france-s"],
+        ["VIGINUM / French MEAE statement (Nov. 2023)","National foreign-interference watchdog","High","https://www.diplomatie.gouv.fr/en/country-files/russia/news/2023/article/russia-new-russian-digital-interference-against-france-09-11-23"],
+        ["VIGINUM, joint statement with allies (Feb. 2024)","National foreign-interference watchdog","High","https://www.globalsecurity.org/intell/library/news/2024/intell-240213-voa02.htm"],
+        ["EEAS Technical Report \"Doppelganger strikes back\" (Apr. 2024)","EU institutional monitoring","High","https://euvsdisinfo.eu/uploads/2024/04/EEAS-DataTeam-TechnicalReport-FINAL.pdf"],
+        ["VIGINUM, via Reuters (Feb. 2026)","National watchdog + journalism","Medium","https://www.aol.com/articles/pro-russia-disinformation-falsely-links-145957330.html"]
+      ],
+      sourceNote: "This dossier is unusually well-sourced because VIGINUM publishes detections close to when they occur. That reporting density should not be read as evidence that France is targeted more than member states with less active disclosure practices."
+    },
+
+    RO: {
+      title: "Romania", eyebrow: "Dossier — member state",
+      meta: "Period 2024–2025 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [4,"documented incidents"], [1,'incident with contested attribution'], [2,'incidents rated "high" severity'], [4,"underlying sources"] ],
+      years: [["2024",3],["2025",1]],
+      timeline: [
+        {id:"RO-2024-01", date:"Nov. 2024", title:"TikTok-based algorithmic campaign, first-round election", cert:"medium", sev:"high",
+         desc:"Declassified intelligence documents alleged a coordinated TikTok campaign — inauthentic accounts, algorithmic amplification, paid promotion — that propelled a marginal candidate to a surprise first-round win. The evidence was not published in full, and the annulment that followed has itself been publicly disputed, including by the runner-up candidate."},
+        {id:"RO-2024-02", date:"2024 →", title:"Undisclosed financing of the TikTok campaign", cert:"low", sev:"medium",
+         desc:"Prosecutors opened an investigation into a Romanian programmer alleged to have financed the campaign in breach of finance rules. No foreign funding source has been formally confirmed at the time of coding."},
+        {id:"RO-2024-03", date:"Nov.–Dec. 2024", title:"85,000+ cyberattacks on election infrastructure", cert:"medium", sev:"high",
+         desc:"Declassified documents reported more than 85,000 attempted cyberattacks on election websites and IT systems, assessed as consistent with state-level attacking capability; the specific state was not formally named."},
+        {id:"RO-2025-01", date:"May 2025", title:"Rerun election targeted, per EEAS", cert:"medium", sev:"medium",
+         desc:"The EEAS's fourth annual FIMI report lists Romania among the countries whose 2025 elections were targeted by foreign information manipulation, following the annulled 2024 vote."}
+      ],
+      targets: [
+        ["Election","2024 presidential election, first round","Surprise result attributed by Romanian authorities in part to coordinated platform manipulation; result subsequently annulled by the Constitutional Court."],
+        ["Campaign finance","TikTok promotional spending","Undisclosed financing under investigation, foreign link alleged but unconfirmed."],
+        ["Electoral infrastructure","Election websites and IT systems","Tens of thousands of attempted cyberattacks around the first round."],
+        ["Election","2025 rerun presidential election","Named by the EEAS as a 2025 election target, alongside Germany, Poland, Moldova and Czechia."]
+      ],
+      actors: [{
+        name: "Russia (contested)",
+        sub: "Characterised as Russian-style hybrid interference by Romanian authorities and cited as such by EU officials, but the underlying evidence has not been fully published, and the attribution — and the annulment it justified — remains disputed within Romania itself, including by the losing candidate's own opponent.",
+        networks: [
+          ["TikTok amplification network", "Coordinated inauthentic accounts and paid promotion, per declassified CSAT documents; not linked by name to a previously known network such as Doppelganger."],
+          ["Election-infrastructure intrusion attempts", "Large-scale, technically attributed to 'an attacking state' in capability terms only."]
+        ],
+        certHigh: 0, certMedium: 3
+      }],
+      actorNote: "This is the most contested dossier coded so far: Romania's own Constitutional Court annulment was criticised by figures across the political spectrum, including reform-oriented opposition politicians, as more damaging to democratic trust than the alleged interference itself. The case is included because the interference claim is real and officially made, not because the underlying attribution or the institutional response to it is settled or uncontroversial.",
+      aims: [
+        ["Elevating a fringe candidate","platform manipulation assessed by Romanian authorities to have driven a marginal candidate to first place (CSAT documents)."],
+        ["Disrupting the electoral process directly","large-scale cyberattacks on election IT infrastructure around the vote."],
+        ["Sustained pressure into the rerun","renewed targeting of the May 2025 rerun election, per the EEAS."]
+      ],
+      sources: [
+        ["Romanian CSAT declassified documents (Dec. 2024), via Atlantic Council","National security service, declassified assessment","Medium","https://www.atlanticcouncil.org/blogs/new-atlanticist/romania-annulled-its-presidential-election-results-amid-alleged-russian-interference-what-happens-next/"],
+        ["Haverford College Political Science analysis, citing Romanian press (Jan. 2025)","Academic summary of press reporting","Low","https://www.haverford.edu/political-science/blog/romanian-elections-surprise-tiktok-win-and-question-international-concern"],
+        ["Romanian intelligence declassified documents, via Reuters/CNN (Dec. 2024)","National security service, declassified assessment","Medium","https://ca.news.yahoo.com/romania-top-court-annuls-presidential-145531850.html"],
+        ["4th EEAS Report on FIMI Threats (Mar. 2026)","EU institutional annual report","Medium","https://euvsdisinfo.eu/4th-eeas-report-on-fimi-threats-dismantling-the-fimi-house-of-cards/"]
+      ],
+      sourceNote: "Romania's dossier carries lower average certainty than Germany or France: the core declassified evidence has not been published in full, no foreign state has been formally named, and the domestic political and legal response to the annulment remains actively contested. Treat this dossier as illustrating a real but unusually disputed case, not a settled one."
+    },
+
+    PL: {
+      title: "Poland", eyebrow: "Dossier — member state",
+      meta: "Period 2025 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [5,"documented incidents"], [2,"attributed state actors (Russia, Belarus)"], [2,'incidents rated "high" severity'], [4,"underlying sources"] ],
+      years: [["2025",5]],
+      timeline: [
+        {id:"PL-2025-04", date:"Jan. 2025 →", title:"Minister attributes campaign to Russia's GRU", cert:"medium", sev:"high",
+         desc:"Poland's Digital Affairs Minister publicly attributed an unfolding disinformation campaign to Russia's GRU, describing an attempt to disrupt the political landscape and exploit social tensions ahead of the presidential election."},
+        {id:"PL-2025-01", date:"Mar.–Apr. 2025", title:"Doppelganger engages the presidential election", cert:"medium", sev:"medium",
+         desc:"The EU-sanctioned Social Design Agency's Doppelganger operation published 279 tweets on X spreading anti-EU, anti-Ukrainian and anti-establishment narratives; X acknowledged the researchers' report."},
+        {id:"PL-2025-02", date:"Spring 2025", title:"Belarusian state broadcaster influence campaign", cert:"high", sev:"medium",
+         desc:"The Polish-language branch of Belarusian state broadcaster Belteleradio ran a cross-platform campaign on TikTok, YouTube, X and Facebook questioning the vote's legitimacy."},
+        {id:"PL-2025-03", date:"Ahead of May–Jun. 2025", title:"Cyberattack on Civic Platform party systems", cert:"medium", sev:"high",
+         desc:"A cyberattack targeting the governing party's computer systems was linked by officials and cybersecurity experts to Russian sources."},
+        {id:"PL-2025-05", date:"Ahead of the 2025 election", title:"Dark-web recruitment for paid propaganda", cert:"medium", sev:"medium",
+         desc:"Russian intelligence reportedly attempted to recruit Polish citizens via the dark web, offering payment in exchange for spreading pro-Russian propaganda."}
+      ],
+      targets: [
+        ["Election","2025 presidential election","Central target across all five recorded cases, from platform disinformation to direct cyber intrusion."],
+        ["Political party","Civic Platform (governing party)","Cyberattack on party IT systems ahead of the vote."],
+        ["Citizens","Individuals recruited via dark web","Alleged payment offers to Polish citizens in exchange for spreading pro-Russian content."]
+      ],
+      actors: [
+        { name: "Russia", sub: "Attributed in four of five cases, via a mix of ministerial statement, OSINT research, and official/cybersecurity-expert characterisation.",
+          networks: [
+            ["Doppelganger / Social Design Agency", "EU-sanctioned network engaging directly with the Polish election on X, March-April 2025."],
+            ["GRU-attributed campaign", "General disinformation effort attributed by the Digital Affairs Ministry, without full public technical detail."],
+            ["Dark-web recruitment", "Alleged payments to citizens for spreading pro-Russian content."]
+          ], certHigh: 0, certMedium: 4 },
+        { name: "Belarus", sub: "Attributed in one case, via named state broadcaster.",
+          networks: [["Belteleradio / Radio Belarus", "Polish-language cross-platform campaign questioning the election's legitimacy."]],
+          certHigh: 1, certMedium: 0 }
+      ],
+      actorNote: "Polish officials described the interference as 'unprecedented' during the campaign itself, but post-election analysis (New Eastern Europe, June 2025) found the disinformation observed was markedly less intensive than during the 2024 EP election, with no algorithmic manipulation 'on a Romanian scale' and no leaks comparable to those seen in France. Both framings are preserved here rather than resolved in favour of one.",
+      aims: [
+        ["Disrupting the presidential election specifically","platform campaigns and a party-targeted cyberattack concentrated in the months immediately before the vote."],
+        ["Exploiting domestic grievances","anti-EU, anti-Ukrainian and anti-establishment narratives tailored to existing social tensions (Doppelganger)."],
+        ["Questioning electoral legitimacy from outside the traditional Russian ecosystem","a Belarusian state broadcaster running a parallel legitimacy-questioning campaign."],
+        ["Building a recruitable propaganda network","dark-web payment offers aimed at securing ongoing domestic amplifiers rather than one-off content."]
+      ],
+      sources: [
+        ["Polish Digital Affairs Ministry statement (Jan. 2025)","Government ministerial statement","Medium","https://bragg.substack.com/p/daily-drop-956"],
+        ["Alliance4Europe / Debunk.org report (Apr. 2025)","OSINT / civil-society research","Medium","https://alliance4europe.eu/doppelganger-poland-elections"],
+        ["Atlantic Council DFRLab / Alliance4Europe assessment (May 2025), via Forbes","Think-tank + civil-society assessment, journalism","High","https://www.forbes.com/sites/lidiakurasinska/2025/06/11/polands-presidential-election-campaign-faced-unprecedented-russian-interference-officials-say/"],
+        ["New Eastern Europe, post-election analysis (Jun. 2025)","Journalism / expert commentary","Medium","https://neweasterneurope.eu/2025/06/10/resisting-foreign-interference-polands-presidential-election-and-the-russian-challenge/"]
+      ],
+      sourceNote: "This dossier deliberately includes both the pre-election 'unprecedented threat' framing from officials and the more measured post-election assessment, since both are part of the public record and neither alone gives an accurate picture."
+    },
+
+    CZ: {
+      title: "Czechia", eyebrow: "Dossier — member state",
+      meta: "Period 2025 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [3,"documented incidents"], [1,"attributed state actor (Russia)"], [0,'incidents rated "high" severity'], [4,"underlying sources"] ],
+      years: [["2025",3]],
+      timeline: [
+        {id:"CZ-2025-03", date:"Jan. 2025", title:"BIS: Czechia a priority Russian target", cert:"high", sev:"medium",
+         desc:"The head of the Czech Security Information Service publicly warned Czechia was a priority target for Russian subversive and influence operations ahead of the October 2025 parliamentary election."},
+        {id:"CZ-2025-02", date:"2025, ongoing", title:"Proxy-media narrative laundering network", cert:"high", sev:"medium",
+         desc:"A resilient network of proxy websites and rebranded media assets laundered pro-Russian narratives into Czech public debate via coordinated TikTok, X and Telegram amplification, focused on long-term trust erosion."},
+        {id:"CZ-2025-01", date:"Late Sep. 2025", title:"Hundreds of TikTok accounts targeting the vote", cert:"medium", sev:"medium",
+         desc:"Investigative outlet Denik N identified hundreds of TikTok accounts attempting to influence the parliamentary election shortly before the vote."}
+      ],
+      targets: [
+        ["Election","October 2025 parliamentary election","Sustained platform activity and narrative laundering across the election period; no operation was found capable of altering the result."],
+        ["Public trust","Confidence in institutions and electoral integrity","Long-term erosion strategy via proxy media rather than acute disruption, per the ISD/Alliance4Europe assessment."]
+      ],
+      actors: [{
+        name: "Russia",
+        sub: "Attributed in all three cases, characterised as state-linked but without individual campaign branding comparable to Doppelganger elsewhere.",
+        networks: [
+          ["Proxy media network", "neCT24, the Pravda network and NewsFront SK, laundering narratives via cross-platform amplification."],
+          ["TikTok account cluster", "Hundreds of accounts identified shortly before the vote by investigative journalists."]
+        ],
+        certHigh: 2, certMedium: 1
+      }],
+      actorNote: "This is the most reassuring dossier coded so far: the joint ISD/Alliance4Europe election assessment explicitly concluded that no coordinated operation capable of influencing the outcome was detected, and the vote was found legitimate and orderly. Separately, at least one academic commentary notes that Czech governing-coalition figures have, on unrelated occasions, invoked 'Russian interference' rhetoric to deflect domestic scandals unrelated to any documented FIMI activity — a reminder that the label itself can be contested domestically, distinct from the coded incidents above.",
+      aims: [
+        ["Long-term erosion of institutional trust","proxy-media narrative laundering aimed at persistent distrust rather than a single decisive intervention (ISD/Alliance4Europe)."],
+        ["Testing platform-level vulnerabilities ahead of the vote","a late-breaking cluster of TikTok accounts, discovered and reported before it could be assessed for effect."]
+      ],
+      sources: [
+        ["Denik N investigation (Sep. 2025)","Investigative journalism","Medium","https://www.isdglobal.org/isd-publications/assessment-of-foreign-information-manipulation-and-interference-in-the-2025-czech-parliamentary-election/"],
+        ["ISD / Alliance4Europe, Assessment of FIMI in the 2025 Czech Parliamentary Election","Civil-society election assessment","High","https://alliance4europe.eu/report/assessment-of-foreign-information-manipulation-and-interference-in-the-2025-czech-parliamentary-election"],
+        ["BIS director Michal Koudelka, public statement (Jan. 2025)","National security service","High","https://www.expats.cz/czech-news/article/czechia-facing-heightened-disinformation-threat-warns-intelligence-chief"],
+        ["Global Fact Checking, academic commentary (Nov. 2025)","Academic / critical commentary","Low","https://globalfactchecking.com/czech-parliamentary-elections-2025-manipulation-and-the-role-of-disinformation-in-shaping-public-opinion/"]
+      ],
+      sourceNote: "Unlike every other member-state dossier coded so far, the lead election-monitoring source here explicitly rules out a decisive foreign-interference effect. It is included precisely because a source-based database must also register well-documented non-findings, not only confirmed incidents."
+    },
+
+    SK: {
+      title: "Slovakia", eyebrow: "Dossier — member state",
+      meta: "Period 2023 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [3,"documented incidents"], [1,'incident with confirmed state attribution'], [1,'incident rated "high" severity'], [3,"underlying sources"] ],
+      years: [["2023",3]],
+      timeline: [
+        {id:"SK-2023-01", date:"28 Sep. 2023", title:"Deepfake audio of opposition leader and journalist", cert:"low", sev:"high",
+         desc:"An AI-generated deepfake fabricated a conversation between opposition leader Michal Simecka and a journalist about rigging the vote, released during the pre-election moratorium. Its creator was never conclusively identified; part of its spread traced to a pro-Russian propagandist's Telegram account."},
+        {id:"SK-2023-02", date:"26 Sep. 2023", title:"Deepfake audio on beer-price claims", cert:"low", sev:"medium",
+         desc:"A separate AI-generated deepfake falsely put words in the same opposition leader's mouth about a planned steep rise in beer prices."},
+        {id:"SK-2023-03", date:"29 Sep. 2023", title:"SVR public statement naming Progressive Slovakia", cert:"high", sev:"medium",
+         desc:"Russia's foreign intelligence service (SVR) publicly accused the US of directing allies to secure a Progressive Slovakia win, naming its chairman directly; Russian state TV amplified the claim the night before the vote. Slovakia summoned the Russian ambassador in protest."}
+      ],
+      targets: [
+        ["Election","2023 parliamentary election, pre-election moratorium","Two deepfakes released in the final days, when moratorium rules limited parties' and media's ability to respond."],
+        ["Political party","Progressive Slovakia and its leader Michal Simecka","Target of both deepfakes and the SVR's direct public statement."],
+        ["Election integrity narrative","Public confidence in the vote","SVR statement and Rossiya 1 coverage cast doubt on the election's integrity on the eve of the vote."]
+      ],
+      actors: [{
+        name: "Russia (mixed attribution)",
+        sub: "One of three cases carries a confirmed, self-attributed statement from a Russian state body (SVR); the two deepfakes remain formally unattributed despite circumstantial links to pro-Russian amplifiers.",
+        networks: [
+          ["SVR public narrative intervention", "Russia's own foreign intelligence service publicly inserted itself into the election narrative — a rare case of self-attribution rather than third-party detection."],
+          ["Unattributed deepfake production", "Two AI-generated audio clips whose creators were never identified; academic analysis cautions against assuming state sponsorship without further evidence."]
+        ],
+        certHigh: 1, certMedium: 0
+      }],
+      actorNote: "Academic analysis of the 'Slovak case' (Harvard Kennedy School Misinformation Review) explicitly complicates the narrative that this was 'the first election swung by deepfakes': it highlights that only 18% of Slovaks trusted their government before the vote, suggesting low institutional trust was arguably a bigger factor than the deepfakes themselves. This dossier keeps the confirmed state statement (SVR) and the unattributed deepfakes analytically separate, rather than treating the whole episode as a single confirmed Russian operation.",
+      aims: [
+        ["Undermining a specific pro-European candidate","two deepfakes fabricating damaging statements by the same opposition leader in the campaign's final days."],
+        ["Casting doubt on the election's legitimacy from outside","a Russian state body publicly alleging Western interference on behalf of the pro-European party, amplified on Russian state television."]
+      ],
+      sources: [
+        ["VSquare.org investigation (Nov. 2023)","Investigative journalism / OSINT","Medium","https://vsquare.org/slovak-election-targeted-by-pro-kremlin-deepfake-hoax/"],
+        ["International Press Institute (Nov. 2023)","Press-freedom organisation","Low","https://ipi.media/slovakia-deepfake-audio-of-dennik-n-journalist-offers-worrying-example-of-ai-abuse/"],
+        ["OECD AI Incidents and Hazards Monitor / AI Incident Database","Structured incident database","Low","https://incidentdatabase.ai/cite/573/"]
+      ],
+      sourceNote: "This dossier illustrates a recurring pattern worth flagging explicitly: the most viral incidents (the deepfakes) have the lowest certainty of foreign attribution, while the most certain case (the SVR's own statement) is a narrative intervention rather than fabricated content. Treating 'high-profile' and 'well-attributed' as the same thing would misrepresent this dossier."
+    },
+
+    BG: {
+      title: "Bulgaria", eyebrow: "Dossier — member state",
+      meta: "Period 2024-2026 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [5,"documented incidents"], [1,"attributed state actor (Russia)"], [2,'incidents rated "high" severity'], [5,"underlying sources"] ],
+      years: [["2024",2],["2025",0],["2026",3]],
+      timeline: [
+        {id:"BG-2024-01", date:"2024", title:"51-company financing network (BG Elves)", cert:"medium", sev:"high",
+         desc:"A Bulgarian civil-society collective identified 51 companies, linked through opaque ownership chains, facilitating a large-scale Russian-funded social media campaign targeting the October 2024 election."},
+        {id:"BG-2024-02", date:"Ahead of Jun. 2024", title:"European Parliament interference concerns", cert:"medium", sev:"medium",
+         desc:"An EP resolution cited credible reports of Russian interference attempts, a disinformation-agent network, and Russian-owned properties in Bulgaria alleged to serve as influence centres."},
+        {id:"BG-2026-03", date:"Reported Mar. 2026", title:"'Pravda ecosystem' — ~6,000 articles/month", cert:"medium", sev:"high",
+         desc:"CSD Sofia identified a Portal Kombat-linked network producing near-6,000 Bulgarian-language articles monthly, aimed primarily at search engines and AI systems rather than direct readership."},
+        {id:"BG-2026-01", date:"Apr. 2026", title:"'Romanian scenario' EU-interference campaign", cert:"high", sev:"high",
+         desc:"Kremlin-aligned outlets ran a coordinated multi-language campaign framing EU support as censorship, warning of a Romania-style annulment if a pro-Russian candidate won."},
+        {id:"BG-2026-02", date:"Apr. 2026", title:"SVR-sourced nuclear-fearmongering narrative", cert:"high", sev:"medium",
+         desc:"A false EU-censorship claim was traced to Russia's SVR and amplified via Sputnik, forming part of a broader narrative aimed at undermining trust in Western institutions."}
+      ],
+      targets: [
+        ["Election","October 2024 parliamentary election","Target of the BG Elves-identified financing network."],
+        ["Election","9 June 2024 parliamentary election","Target of the interference concerns raised in the EP resolution."],
+        ["Election","April 2026 parliamentary election (8th in 5 years)","Target of both the 'Romanian scenario' campaign and the SVR-sourced narrative."],
+        ["Public discourse / search and AI systems","Bulgarian-language information space generally","Target of the sustained 'Pravda ecosystem' content-laundering operation."]
+      ],
+      actors: [{
+        name: "Russia",
+        sub: "Attributed in all five recorded cases — via a mix of civil-society investigation (BG Elves), a European Parliament resolution, a specialised think tank (CSD Sofia), and EEAS/EUvsDisinfo narrative attribution.",
+        networks: [
+          ["51-company financing network", "Opaque Bulgarian corporate structure funding a large-scale social media campaign (BG Elves)."],
+          ["Pravda ecosystem / Portal Kombat", "High-volume Bulgarian-language content laundering aimed at search and AI systems (CSD)."],
+          ["Node of Time / Kremlin-aligned outlets", "Coordinated multi-language 'Romanian scenario' campaign (DFRLab)."],
+          ["SVR narrative origination", "Self-originated false claims amplified via Sputnik and pro-Kremlin FIMI outlets (EUvsDisinfo)."]
+        ],
+        certHigh: 2, certMedium: 3
+      }],
+      actorNote: "Bulgarian and international analysts are explicit that external activity is not the whole story: the CSD's March 2026 report stresses that Bulgaria's vulnerability is driven as much by a domestic ecosystem of partisan 'balancing' media, low media literacy and chronic political instability (eight elections in five years) as by external actors. This dossier documents the external component only; it should not be read as claiming external actors are the primary cause of Bulgaria's information disorder.",
+      aims: [
+        ["Financing sympathetic campaigns covertly","a 51-company network funding social media activity ahead of the October 2024 vote (BG Elves)."],
+        ["Undermining confidence in EU institutions specifically","narratives framing EU support and oversight as censorship or interference (DFRLab, EUvsDisinfo)."],
+        ["Pre-emptively delegitimising an unfavourable outcome","the 'Romanian scenario' narrative priming audiences to view any annulment or EU response as illegitimate interference, before any such response occurred."],
+        ["Long-term search and AI-visibility capture","sustained high-volume content production aimed at shaping what search engines and AI systems surface, not just direct readers (CSD)."]
+      ],
+      sources: [
+        ["BG Elves research, via Balkan Insight (Aug. 2025)","Civil-society investigation + journalism","Medium","https://balkaninsight.com/2025/08/12/in-dysfunctional-bulgaria-disinformation-thrives-and-spills-over-into-eu/bi/"],
+        ["European Parliament, motion for resolution B9-0266/2024","EU institutional resolution","Medium","https://www.europarl.europa.eu/doceo/document/B-9-2024-0266_EN.html"],
+        ["Atlantic Council DFRLab (Jun. 2026)","Think-tank OSINT investigation","High","https://dfrlab.org/2026/06/09/kremlin-aligned-actors-targeted-bulgarian-vote-with-eu-interference-claims/"],
+        ["EUvsDisinfo / EEAS (Apr. 2026)","EU institutional monitoring","High","https://euvsdisinfo.eu/russia-targets-elections-in-hungary-and-bulgaria/"],
+        ["Centre for the Study of Democracy, Sofia (Mar. 2026)","Specialised national think tank","Medium","https://csd.eu/fileadmin/user_upload/publications_library/files/2026_03/Defending_the_Vote-en.pdf"]
+      ],
+      sourceNote: "Bulgaria has one of the more diverse source bases coded so far — civil society, the European Parliament, an international OSINT lab, the EU's own monitoring body, and a national think tank all independently converge on Russia as the primary external actor. Diversity of source type is treated here as a partial substitute for the case-level technical detail available in, for example, the France or Germany dossiers."
+    },
+
+    HU: {
+      title: "Hungary", eyebrow: "Dossier — member state",
+      meta: "Period 2026 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [3,"documented incidents"], [1,"attributed state actor (Russia)"], [1,'incident rated "high" severity'], [3,"underlying sources"] ],
+      years: [["2026",3]],
+      timeline: [
+        {id:"HU-2026-01", date:"Reported Mar. 2026", title:"Alleged GRU team supporting the incumbent campaign", cert:"medium", sev:"high",
+         desc:"National-security sources reportedly identified a Russian GRU political-technologist team operating from the Budapest embassy in support of Viktor Orban's re-election, modelled on tactics used in Moldova. Not publicly confirmed by the European Commission at time of coding."},
+        {id:"HU-2026-02", date:"Months-long, through 12 Apr. 2026", title:"Pravda-network campaign against TISZA and the EU", cert:"high", sev:"high",
+         desc:"Pro-Kremlin channels ran a sustained campaign discrediting opposition leader Peter Magyar's TISZA party while accusing Ukraine and the EU of election interference."},
+        {id:"HU-2026-03", date:"Ahead of 12 Apr. 2026", title:"Fabricated claims against the opposition (NewsGuard)", cert:"medium", sev:"medium",
+         desc:"A NewsGuard analyst described a familiar Russian-linked playbook of falsified reports against TISZA, alongside a larger volume of domestically produced disinformation, including a fabricated platform leaked by the governing party itself."}
+      ],
+      targets: [
+        ["Election","12 April 2026 parliamentary election","Central target across all three cases, from an alleged embassy-run technologist team to sustained narrative campaigns."],
+        ["Political party","TISZA and leader Peter Magyar","Primary target of discrediting narratives in two of three cases."],
+        ["Incumbent government","Viktor Orban's re-election campaign","Alleged beneficiary, not target, of the reported GRU-linked activity — the reverse pattern from most other coded dossiers."]
+      ],
+      actors: [{
+        name: "Russia",
+        sub: "Attributed in all three recorded cases, though with notably lower average certainty than most other dossiers: one case rests on an unconfirmed parliamentary question, another on a single NewsGuard analyst's characterisation via press coverage.",
+        networks: [
+          ["Alleged GRU technologist team", "Reportedly embassy-based support for the incumbent government, per national-security sources cited in an EP question — not independently confirmed here."],
+          ["Pravda network / Kremlin-aligned blogs", "Sustained discrediting campaign against TISZA, combined with EU-interference conspiracy narratives (EEAS/EUvsDisinfo)."]
+        ],
+        certHigh: 0, certMedium: 3
+      }],
+      actorNote: "Hungary is the most politically contested dossier in this set, for three distinct reasons that are kept separate rather than blended into one narrative. First, the alleged Russian activity here is reported as supporting the incumbent government rather than opposing it — the reverse of the pattern in Germany, France, Romania, Poland or Bulgaria. Second, independent analysis (Euronews/Bleyer-Simon) found that the larger share of election disinformation, including a fabricated opposition platform, originated domestically with the governing party itself — which is not coded here as an incident, since it is not externally attributed. Third, at least one study alleges a further layer of interference by a fellow EU member state (Poland, allegedly linking Orban to Russia to damage his prospects) — this is excluded from the incident count entirely, since intra-EU state activity falls outside this database's definition of 'external' (non-EU) actors, but is noted here because it illustrates how contested the very framing of 'interference' is in this case.",
+      aims: [
+        ["Supporting the re-election of an aligned incumbent","alleged embassy-linked technologist support, unlike the opposition-targeting pattern seen elsewhere in this dataset."],
+        ["Discrediting the main opposition challenger","sustained narrative campaign against TISZA and Peter Magyar (EEAS/EUvsDisinfo)."],
+        ["Framing the EU itself as an interfering outside actor","conspiracy narratives casting European leaders as secretly manipulating the Hungarian election, mirroring tactics seen in Bulgaria and Romania."]
+      ],
+      sources: [
+        ["European Parliament, parliamentary question P-001155/2026","EU institutional question, citing unnamed national-security sources","Medium","https://www.europarl.europa.eu/doceo/document/P-10-2026-001155_EN.html"],
+        ["EUvsDisinfo, 'Russia targets elections in Hungary and Bulgaria' (Apr. 2026)","EU institutional monitoring","High","https://euvsdisinfo.eu/russia-targets-elections-in-hungary-and-bulgaria/"],
+        ["NewsGuard analysis, via Euronews (Apr. 2026)","Private disinformation-tracking firm + journalism","Medium","https://www.euronews.com/next/2026/04/13/fabricating-proof-the-disinformation-tactics-that-shaped-hungarys-election"]
+      ],
+      sourceNote: "This is the lowest-certainty member-state dossier coded so far: none of the three cases reaches a 'high' certainty rating, reflecting that the most serious allegation (the embassy-based GRU team) remains an unconfirmed report at a parliamentary question stage. Readers should treat this dossier as documenting live, disputed allegations rather than settled findings — consistent with how the underlying sources themselves present it."
+    },
+
+    GR: {
+      title: "Greece", eyebrow: "Dossier — member state",
+      meta: "Period 2018-2026 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [3,"documented incidents"], [1,"attributed state actor (Russia)"], [1,'incident rated "high" severity'], [3,"underlying sources"] ],
+      years: [["2018",1],["2022",1],["2026",1]],
+      timeline: [
+        {id:"GR-2018-01", date:"Jun. 2018 – Mar. 2022", title:"Sputnik Greek-language office in Athens", cert:"high", sev:"medium",
+         desc:"Russia's state-funded Sputnik agency ran a 32-person Greek-language newsroom in Athens until it was closed under EU-wide sanctions on Russian state media in March 2022."},
+        {id:"GR-2022-01", date:"2022", title:"Nuclear-targeting and Ukraine-policy disinformation", cert:"medium", sev:"medium",
+         desc:"Greek fact-checkers documented false claims that Greece had been marked as a nuclear target over its Ukraine arms shipments, alongside a fabricated claim about Ukrainian policy toward the Greek minority."},
+        {id:"GR-2026-01", date:"18 Jun. 2026 (contact)", title:"Vovan & Lexus hoax call with the PM's security adviser", cert:"medium", sev:"high",
+         desc:"Kremlin-honoured Russian pranksters impersonated a Ukrainian official in a video call with Greece's National Security Advisor, who disclosed sensitive details; the government called it a hybrid AI attack, the pranksters said it was a simple email approach. Triggered opposition calls for the adviser's resignation."}
+      ],
+      targets: [
+        ["Public opinion","Greek-language news audience, 2018-2022","Sustained state-media presence via Sputnik's Athens office."],
+        ["Public opinion","Support for Ukraine; social cohesion","False nuclear-targeting and minority-policy claims aimed at Greek public opinion (2022)."],
+        ["Senior government official","Thanos Dokos, National Security Advisor to the PM","Deceived into disclosing sensitive details in a hoax video call, triggering a domestic political scandal (2026)."]
+      ],
+      actors: [{
+        name: "Russia",
+        sub: "Attributed in all three cases, though via three quite different mechanisms: a formally sanctioned state broadcaster, fact-checker-documented narrative claims, and a Kremlin-honoured but formally 'independent' prankster duo.",
+        networks: [
+          ["Sputnik Athens", "Formally part of Russia's state broadcasting apparatus; closed under EU sanctions in 2022."],
+          ["Post-invasion narrative campaign", "Fabricated claims about nuclear targeting and Ukrainian minority policy, aimed at Greek public opinion."],
+          ["Vovan & Lexus ('hybrid' prank operations)", "Kremlin-honoured pranksters (Order of Friendship, 2024) whose targets skew heavily toward Ukraine-aligned Western officials; they themselves deny acting as state agents."]
+        ],
+        certHigh: 1, certMedium: 2
+      }],
+      actorNote: "The Dokos case illustrates a genuine attribution grey zone that this dossier keeps visible rather than resolving: Vovan and Lexus are private individuals honoured by the Kremlin for unspecified 'services', not declared intelligence officers, and they themselves publicly reject the Greek government's 'hybrid AI attack' framing, saying the access was obtained through a simple email. Both the government's framing and the pranksters' rebuttal are recorded here without adopting either as the final word.",
+      aims: [
+        ["Sustained narrative presence","a formally state-run Greek-language newsroom operating for nearly four years (Sputnik Athens)."],
+        ["Undermining public support for Ukraine","fabricated nuclear-threat and minority-policy claims aimed at Greek audiences (2022)."],
+        ["Extracting sensitive information and embarrassing officials","a hoax call eliciting disclosures from a senior security adviser, with the resulting scandal itself functioning as a secondary destabilising effect regardless of the intelligence value obtained."]
+      ],
+      sources: [
+        ["European Commission, EU sanctions decision (Mar. 2022)","EU institutional decision","High","https://greece.representation.ec.europa.eu/news/oykrania-kyroseis-kata-ton-meson-enimerosis-russia-today-kai-sputnik-poy-stirizontai-apo-kremlino-2022-03-02_el"],
+        ["factchecker.gr, 'Greek-Russian friendship and the weaponisation of religion' (2024)","National fact-checking organisation","Medium","https://www.factchecker.gr/2024/05/13/kremlin-religion-weaponization-propaganda-and-disinformation/"],
+        ["Keep Talking Greece; To Vima; multiple Greek outlets (Jul. 2026)","Journalism, incl. direct statements from the perpetrators","Medium","https://www.keeptalkinggreece.com/2026/07/03/greece-national-security-advisor-dokos-victim-phone-prank-russian/"]
+      ],
+      sourceNote: "The most recent case (Dokos) is unusually well-documented for a covert-influence incident because the perpetrators themselves gave press interviews about it — but that same directness is also why its state attribution is contested rather than settled; readers should weigh the certainty rating, not just the severity rating, when comparing it to other dossiers."
+    },
+
+    IT: {
+      title: "Italy", eyebrow: "Dossier — member state",
+      meta: "Period 2018-2022 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [5,"documented incidents"], [1,"attributed state actor (Russia)"], [2,'incidents rated "high" severity'], [5,"underlying sources"] ],
+      years: [["2018",1],["2022",4]],
+      timeline: [
+        {id:"IT-2018-01", date:"Feb. 2018", title:"Known Russian troll accounts amplify Italian posts", cert:"medium", sev:"medium",
+         desc:"Troll accounts previously identified in the US DOJ's 2016 election-interference probe were found retweeting Italian accounts weeks before the March 2018 general election (La Stampa)."},
+        {id:"IT-2022-01", date:"2022", title:"COPASIR: intensifying Russian hybrid threat", cert:"high", sev:"high",
+         desc:"Italy's parliamentary security committee found Russian hybrid activity intensifying across informational, politico-diplomatic, cyber and economic domains, spreading a negative image of Ukraine, the EU and NATO."},
+        {id:"IT-2022-02", date:"2022", title:"No-Vax network overlap with pro-Russia messaging", cert:"high", sev:"medium",
+         desc:"Italy's intelligence community found No-Vax/No-Pass networks resharing Kremlin-adjacent content to orient public opinion on the Ukraine crisis."},
+        {id:"IT-2022-03", date:"Early Sep. 2022", title:"Cyberattacks on Eni and the electricity market operator", cert:"medium", sev:"high",
+         desc:"Russia-linked cyber-criminal groups attacked energy giant Eni and Italy's electricity-market operator weeks before the election, per the National Cybersecurity Agency."},
+        {id:"IT-2022-04", date:"Jul.–Sep. 2022", title:"1,763 anomalous accounts driving a third of political discussion", cert:"low", sev:"medium",
+         desc:"Constella Intelligence research for ECFR found a small cluster of accounts generating a disproportionate share of anti-EU, anti-NATO and anti-sanctions activity; no confirmed foreign operator was established."}
+      ],
+      targets: [
+        ["Election","2018 general election","Amplification by known Russian troll accounts (La Stampa)."],
+        ["Election","September 2022 general election","Central target of the COPASIR report, the energy-sector cyberattacks, and the anomalous account activity."],
+        ["Public opinion","Perception of Ukraine, the EU and NATO","Core narrative target across the COPASIR report and the No-Vax network overlap."],
+        ["Critical infrastructure","Energy sector (Eni; electricity market operator)","Direct cyberattacks weeks before the 2022 vote, targeting Italy's move away from Russian energy."]
+      ],
+      actors: [{
+        name: "Russia",
+        sub: "Attributed with high certainty in the two cases backed by Italian state bodies (COPASIR, the intelligence community); the remaining cases carry medium-to-low certainty, including one where researchers explicitly could not confirm a foreign operator.",
+        networks: [
+          ["Hybrid threat activity (COPASIR)", "Coordinated informational, diplomatic, cyber and economic pressure documented by parliamentary oversight."],
+          ["No-Vax / pro-Russia network overlap", "Domestic anti-vaccine networks resharing Kremlin-adjacent content, per the intelligence community."],
+          ["Energy-sector cyberattacks", "Russia-linked criminal groups targeting Eni and the electricity market operator."],
+          ["Unattributed anomalous accounts", "A small, highly active account cluster amplifying anti-EU/NATO narratives, with no confirmed operator."]
+        ],
+        certHigh: 2, certMedium: 2
+      }],
+      actorNote: "Italy's dossier is distinguished by having some of the most explicit official source material of any country coded so far (a parliamentary security committee and the national intelligence community both published direct findings), alongside one case (IT-2022-04) deliberately included at low certainty because the researchers themselves stopped short of attributing the anomalous activity to a foreign state — illustrating that domestic political polarisation and foreign-aligned narrative amplification can look similar without being the same thing.",
+      aims: [
+        ["Shaping public opinion on Ukraine, the EU and NATO","fake news and narrative operations described by COPASIR as core to the post-invasion hybrid threat."],
+        ["Leveraging domestic movements as amplifiers","reshared Kremlin-adjacent content moving through No-Vax/No-Pass networks rather than dedicated political channels."],
+        ["Disrupting the shift away from Russian energy dependence","direct cyberattacks on the two companies central to Italy's energy diversification plan, timed to the election."],
+        ["Exploiting the 2022 government collapse","an unusual spike in new, highly active accounts following the fall of the Draghi government (Constella/ECFR), though without confirmed foreign attribution."]
+      ],
+      sources: [
+        ["La Stampa (Feb. 2018)","Investigative journalism","Medium","https://www.lastampa.it/esteri/2018/02/17/news/iovotono-consip-e-bastaimmigrati-le-operazioni-social-in-italia-dei-troll-di-san-pietroburgo-1.33981385"],
+        ["COPASIR annual report (2022), Italian Senate","National parliamentary security oversight","High","https://www.senato.it/service/PDF/PDFServer/BGT/1360852.pdf"],
+        ["Italian intelligence community (DIS), 2022 annual report","National intelligence assessment","High","https://www.sicurezzanazionale.gov.it/sisr.nsf/wp-content/uploads/2023/02/Relazione_annuale_2022_interattiva.pdf"],
+        ["Italy's National Cybersecurity Agency (ACN), via ECFR (2023)","National cybersecurity agency + policy analysis","Medium","https://ecfr.eu/publication/democratic-defence-how-italy-can-lead-the-fight-against-russian-disinformation/"],
+        ["Constella Intelligence research for ECFR (Jun. 2023)","Commercial OSINT research","Low","https://constellaintelligence.com/wp-content/uploads/2023/06/Italy-Digital-Public-Sphere-Debate-2022.pdf"]
+      ],
+      sourceNote: "Italy is also notable for a well-documented domestic dimension that this dossier deliberately excludes from its incident count: several senior Italian politicians have themselves echoed pro-Kremlin talking points or downplayed events such as the Bucha massacre. That is domestic political speech, not externally attributed activity, so it is not coded here — but it forms part of the wider context in which the coded incidents occurred, per the underlying source (ECFR)."
+    },
+
+    ES: {
+      title: "Spain", eyebrow: "Dossier — member state",
+      meta: "Period 2017 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [3,"documented incidents"], [1,"attributed state actor (Russia)"], [1,'incident rated "high" severity'], [3,"underlying sources"] ],
+      years: [["2017",3]],
+      timeline: [
+        {id:"ES-2017-01", date:"Oct.–Nov. 2017", title:"Government confirms destabilising propaganda from Russian territory", cert:"medium", sev:"high",
+         desc:"Spain's Foreign and Defence Ministers said intelligence confirmed destabilising propaganda originated from Russian and Venezuelan territory around the Catalonia referendum, while explicitly not confirming Russian state involvement."},
+        {id:"ES-2017-02", date:"Oct.–Nov. 2017", title:"EU East StratCom documents Russian-backed media narratives", cert:"medium", sev:"medium",
+         desc:"The EU's disinformation monitoring task force documented examples of Russian state-backed media disinformation about the Catalonia crisis."},
+        {id:"ES-2017-03", date:"1 Oct. 2017 →", title:"Elcano Institute: trolls, bots and state-TV amplification", cert:"medium", sev:"medium",
+         desc:"A senior analyst at Spain's Elcano Institute documented Russian-linked trolls and bot networks active on Facebook and Twitter during the vote, amplified by Russian state television."}
+      ],
+      targets: [
+        ["Referendum / regional crisis","1 October 2017 Catalonia independence referendum","Central target of all three recorded cases."],
+        ["Public opinion","National cohesion; EU stability narrative","Officials explicitly framed the aim as 'debilitating' Spain and the EU, not just influencing the referendum outcome."]
+      ],
+      actors: [{
+        name: "Russia",
+        sub: "Attributed with medium certainty in all three cases; notably, Spanish officials themselves stated at the time that they could not confirm Russian state involvement, only that activity originated from Russian territory.",
+        networks: [
+          ["Unidentified Russia-based networks", "Government-confirmed geographic origin of destabilising propaganda; state-level direction unconfirmed."],
+          ["Russian state-backed media", "Documented by the EU's East StratCom Task Force."],
+          ["Trolls, bots and fake accounts", "Identified by Elcano Institute analysis, amplified by Russian state television coverage."]
+        ],
+        certHigh: 0, certMedium: 3
+      }],
+      actorNote: "This is one of the earliest cases in the dataset (2017, predating the EEAS's FIMI framework entirely) and one of the most geopolitically consequential, given it concerns a secessionist crisis rather than a national election. It is also genuinely contested: Catalan pro-independence leaders denied foreign interference shaped the outcome, Russia dismissed the claims as 'hysteria', and Spanish officials' own language was notably cautious ('could not say with certainty'). Some subsequent reporting indicates a related judicial investigation into alleged links between Russian contacts and Catalan strategists was later discontinued without publicly confirmed findings; this dossier does not code that investigation itself as a further incident, since its outcome is disputed and unconfirmed rather than a documented case.",
+      aims: [
+        ["Amplifying a secessionist crisis to weaken Spain and the EU","officials described the intent as being to 'debilitate' the European Union, not merely to sway the referendum result."],
+        ["Providing sympathetic international coverage","intensive Russian state television coverage of the referendum and subsequent crackdown, framing Spain unfavourably."]
+      ],
+      sources: [
+        ["Statements by Ministers Dastis and de Cospedal, EU Foreign Affairs Council (Nov. 2017)","Government ministerial statements","Medium","https://edition.cnn.com/2017/11/13/europe/catalonia-russia-connection-referendum/index.html"],
+        ["EU East StratCom Task Force / EUvsDisinfo, via BBC (Nov. 2017)","EU institutional monitoring","Medium","https://feeds.bbci.co.uk/news/world-europe-41981539"],
+        ["Real Instituto Elcano, via Bloomberg (Nov. 2017)","National think tank analysis","Medium","https://www.realinstitutoelcano.org/en/analyses/the-combination-an-instrument-in-russias-information-war-in-catalonia/"]
+      ],
+      sourceNote: "No case in this dossier reaches 'high' certainty — reflecting that Spanish officials themselves declined to confirm state-level Russian direction at the time, a caveat that has persisted in subsequent reporting. This dossier documents a well-attested pattern of Russia-linked activity without overstating the confidence of formal state attribution."
+    },
+
+    AT: {
+      title: "Austria", eyebrow: "Dossier — member state",
+      meta: "Period 2024-2025 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [3,"documented incidents"], [1,"attributed state actor (Russia)"], [3,'incidents rated "high" severity'], [3,"underlying sources"] ],
+      years: [["2024",1],["2025",2]],
+      timeline: [
+        {id:"AT-2024-01", date:"Uncovered 2024", title:"Ott/Marsalek espionage network", cert:"high", sev:"high",
+         desc:"A former Austrian intelligence officer was convicted of passing sensitive data to Russian intelligence via the network of fugitive businessman Jan Marsalek, directly linked to Russia's FSB; assessments suggest the network sought to bolster pro-Russian voices in Austrian politics, though no formal party-level involvement was confirmed."},
+        {id:"AT-2025-01", date:"Cell formed 2022; uncovered Mar. 2025", title:"False-flag disinformation cell on Ukraine", cert:"high", sev:"high",
+         desc:"Austria's domestic intelligence agency uncovered a Russian-directed cell using pro-Ukrainian-styled stickers and graffiti to covertly generate pro-Russian, anti-Ukrainian sentiment, run via a Bulgarian intelligence liaison."},
+        {id:"AT-2025-02", date:"Reported 2025", title:"Vienna as a Russian espionage and influence hub", cert:"medium", sev:"high",
+         desc:"A Wall Street Journal investigation found Vienna serves as a base for Russian financing, logistics, sabotage, recruitment and influence operations conducted across Europe, not only against Austria itself."}
+      ],
+      targets: [
+        ["Public opinion","Austrian and German attitudes toward Ukraine","Direct target of the false-flag sticker/graffiti disinformation cell."],
+        ["National security infrastructure","Austrian intelligence data and former officials","Compromised via the Ott/Marsalek espionage network."],
+        ["Austria's role in European security","Vienna's function as an operational base","Exploited as a hub for operations extending well beyond Austria's own borders."]
+      ],
+      actors: [{
+        name: "Russia",
+        sub: "Attributed in all three cases with unusually high average certainty for this dataset, reflecting confirmed court verdicts and direct domestic-intelligence-agency findings rather than aggregate or inferential characterisations.",
+        networks: [
+          ["Marsalek network", "Fugitive businessman Jan Marsalek's network, directly linked to Russia's FSB via seized communications, implicated in the Ott espionage case."],
+          ["False-flag disinformation cell", "Formed weeks after the 2022 invasion, using far-right-styled stickers and graffiti to impersonate pro-Ukrainian activism."],
+          ["Vienna-based operational infrastructure", "Financing and logistics for sabotage, recruitment and influence campaigns across Europe, per WSJ sourcing."]
+        ],
+        certHigh: 2, certMedium: 1
+      }],
+      actorNote: "Austria's far-right FPÖ features prominently in the wider context around these cases — most notably the 2019 'Ibiza affair', in which FPÖ leader Heinz-Christian Strache was filmed offering state contracts to someone posing as a Russian oligarch's niece. That figure was not actually Russian and the sting was a journalistic operation, not a genuine external actor's action, so it is deliberately not coded here as an incident. It is noted only because it illustrates a documented pattern of receptiveness that may make Austria more attractive terrain for the genuinely external cases above; sources are explicit that no evidence confirms formal FPÖ involvement in the Marsalek network itself.",
+      aims: [
+        ["Covertly shaping Austrian and German opinion on Ukraine","false-flag content designed to look like pro-Ukrainian activism while pushing pro-Russian narratives."],
+        ["Penetrating state security infrastructure","recruitment of a former intelligence officer to extract sensitive data via the Marsalek network."],
+        ["Using Austria as a base for wider European operations","Vienna's function as a logistics and financing hub for sabotage and influence activity beyond Austria's own borders."]
+      ],
+      sources: [
+        ["Vienna regional court verdict (Ott trial); EUobserver reporting","National judicial verdict + journalism","High","https://euobserver.com/223717/interview-neutrality-and-apathy-made-vienna-into-hub-for-russia-spies-austrian-expert-says/"],
+        ["Austrian Directorate for State Protection and Intelligence (DSN), March 2025","National security service","High","https://therecord.media/austria-uncovers-russian-disinfo-campaign"],
+        ["Wall Street Journal investigation, via The Record","Investigative journalism citing intelligence sources","Medium","https://therecord.media/austria-uncovers-russian-disinfo-campaign"]
+      ],
+      sourceNote: "Austria has the highest average certainty rating of any dossier coded so far, driven by a court verdict and a direct domestic-intelligence-agency disclosure rather than aggregate reporting or foreign-source attribution — though this should be read as reflecting Austria's recent high-profile prosecutions, not necessarily a larger underlying threat than in less litigated member states."
+    },
+
+    BE: {
+      title: "Belgium", eyebrow: "Dossier — member state",
+      meta: "Period 2022-2026 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [4,"documented incidents"], [1,"attributed state actor (Russia)"], [3,'incidents rated "high" severity'], [4,"underlying sources"] ],
+      years: [["2022",1],["2023",1],["2024",1],["2026",1]],
+      timeline: [
+        {id:"BE-2022-01", date:"29 Mar. 2022", title:"21 Russian diplomats expelled", cert:"high", sev:"medium",
+         desc:"Belgium expelled 21 Russian diplomats from the Brussels embassy and Antwerp consulate, believed involved in espionage, as part of a coordinated European response after the invasion of Ukraine."},
+        {id:"BE-2023-01", date:"Reported Nov. 2023", title:"Flagged Russian diplomats remain active in Brussels", cert:"medium", sev:"medium",
+         desc:"An international investigation found some Russian diplomats flagged by Belgian intelligence remained in place because only the EU, not Belgium alone, can expel EU-accredited diplomats; one was reportedly tasked with the Russian diaspora."},
+        {id:"BE-2024-01", date:"Ahead of Jun. 2024", title:"Voice of Europe-linked MEP financing network", cert:"high", sev:"high",
+         desc:"Belgian intelligence confirmed pro-Russian interference networks, linked to the Czech-exposed Voice of Europe operation, allegedly paying MEPs to promote a pro-Russian agenda; federal prosecutors opened a formal investigation."},
+        {id:"BE-2026-01", date:"2026 annual report", title:"VSSE: Russia the most immediate foreign threat", cert:"high", sev:"high",
+         desc:"Belgium's State Security Service named Russia the country's most immediate foreign threat, citing espionage, disinformation, cyberattacks, political-influence attempts, and confirmed drone flights near sensitive sites."}
+      ],
+      targets: [
+        ["Diplomatic/espionage infrastructure","Russian embassy and consulate presence","Direct target of the 2022 mass expulsion."],
+        ["EU institutional security","Russian diplomats accredited to the EU","Structural gap exploited: Belgium can flag but not unilaterally expel EU-accredited Russian diplomats."],
+        ["Election","2024 European Parliament elections","Central target of the Voice of Europe-linked MEP financing network, echoing the same operation coded in the Netherlands dossier."],
+        ["National security posture","Belgian government and sensitive infrastructure","Broad-spectrum target per the VSSE's 2026 threat assessment, including drone activity near sensitive sites."]
+      ],
+      actors: [{
+        name: "Russia",
+        sub: "Attributed in all four cases, with the two most recent and most direct disclosures (the 2024 prosecution and the 2026 VSSE report) both rated high certainty.",
+        networks: [
+          ["Diplomatic-cover espionage network", "Estimated in the hundreds of operatives in Brussels, per the Egmont Institute, mixing official and non-official cover."],
+          ["Voice of Europe-linked financing", "The same cross-border network coded in the Netherlands dossier, here allegedly paying Belgian and other MEPs."],
+          ["Broad hybrid activity (VSSE)", "Espionage, disinformation, cyberattacks and political-influence attempts as a general, ongoing pattern rather than isolated cases."]
+        ],
+        certHigh: 3, certMedium: 1
+      }],
+      actorNote: "Belgium's dossier connects directly to the Netherlands dossier via the Voice of Europe network (BE-2024-01), illustrating how a single financing operation can generate independently coded incidents in multiple member states. Belgium is also a structurally distinctive case: because Brussels hosts the EU's own institutions, Belgian authorities can identify suspect Russian diplomats but cannot unilaterally expel those accredited to the EU itself — a jurisdictional gap the VSquare investigation argues has allowed flagged individuals to keep operating.",
+      aims: [
+        ["Maintaining a large-scale espionage and influence presence","hundreds of estimated operatives under diplomatic and non-official cover in Brussels specifically."],
+        ["Shaping the composition of the European Parliament","payments allegedly made to MEPs to promote a pro-Russian agenda ahead of the 2024 elections, explicitly aimed at weakening EU support for Ukraine."],
+        ["Exploiting the EU/member-state jurisdictional split","continued activity by diplomats Belgium itself flagged but could not expel without EU institutional sign-off."]
+      ],
+      sources: [
+        ["Belgian government announcement, via Egmont Institute (Mar. 2022)","Government action + policy institute analysis","High","https://www.egmontinstitute.be/from-russia-with-love-brussels-at-the-center-of-foreign-intelligence-activities/"],
+        ["VSquare.org #ESPIOMATS investigation (Nov. 2023)","International investigative journalism consortium","Medium","https://vsquare.org/russia-diplomats-spying-brussels-intelligence/"],
+        ["Belgian PM Alexander De Croo; federal prosecutors (Apr. 2024)","Government statement + formal prosecution","High","https://www.aljazeera.com/news/2024/4/12/belgium-says-will-probe-suspected-russian-interference-in-european-polls"],
+        ["Belgian State Security Service (VSSE) annual report, via VRT NWS (Jan. 2026)","National security service","High","https://www.belganewsagency.eu/belgian-state-security-warns-of-rising-threats-from-russia-extremism-and-organised-crime"]
+      ],
+      sourceNote: "Belgium's position as host to the EU's own institutions means several sources here describe activity aimed at the EU as much as at Belgium itself; readers comparing this dossier to the separate EU-institutions dossier should note some thematic overlap (both concern Brussels-based EU targets) without double-counting incidents, since each is coded under the level its own source frames it at."
+    },
+
+    PT: {
+      title: "Portugal", eyebrow: "Dossier — member state",
+      meta: "Period 2024-2026 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [4,"documented incidents"], [1,"attributed state actor (Russia)"], [2,'incidents rated "high" severity'], [4,"underlying sources"] ],
+      years: [["2024",2],["2025",1],["2026",1]],
+      timeline: [
+        {id:"PT-2024-01", date:"Feb.-Mar. 2024", title:"YouTube ad campaign against PS and PSD", cert:"medium", sev:"medium",
+         desc:"MediaLab traced attack ads against Portugal's two main centrist parties to a US-registered company separately linked to disinformation campaigns in Singapore, Romania and Panama — described as Portugal's first recognised externally-interfered election."},
+        {id:"PT-2024-02", date:"Ahead of 10 Mar. 2024", title:"Suspected Brazil/Argentina-linked far-right promotion", cert:"low", sev:"medium",
+         desc:"An OSINT researcher found signals of foreign interference, likely from Brazil and Argentina, promoting the far-right party during the election in which it quadrupled its parliamentary seats."},
+        {id:"PT-2025-01", date:"14 Apr.-14 May 2025", title:"Bot network boosting Chega, discrediting rivals", cert:"low", sev:"high",
+         desc:"Commercial AI analysis found 58% of engagement on Chega's X account and 49% of PS/PSD-related comments came from fake profiles; no state sponsor was identified."},
+        {id:"PT-2026-01", date:"2026 threat assessment", title:"SIS names Russia/China as main external threats", cert:"high", sev:"high",
+         desc:"Portugal's internal security service warned of possible sabotage of submarine cables, espionage against firms supplying Ukraine, and a GRU-attributed router-compromise operation active since 2024."}
+      ],
+      targets: [
+        ["Election","10 March 2024 legislative election","Target of both the YouTube ad campaign and the suspected Brazil/Argentina-linked promotion effort."],
+        ["Election","18 May 2025 legislative election","Target of the bot-network campaign amplifying Chega and discrediting PS/PSD."],
+        ["Critical infrastructure","Submarine cables; firms supplying Ukraine","Named specifically in the SIS's 2026 threat assessment as targets of possible sabotage and espionage."]
+      ],
+      actors: [{
+        name: "Mixed / largely unattributed",
+        sub: "Only the 2026 SIS cyber-espionage case reaches high certainty with a named state (Russia). The three electoral-disinformation cases are unattributed or only weakly linked to a foreign source, consistent with independent academic research finding Portugal 'is not a primary target for external disinformation campaigns.'",
+        networks: [
+          ["US-registered ad network", "Linked to disinformation activity in Singapore, Romania and Panama, but no confirmed state sponsor (MediaLab)."],
+          ["Suspected Brazil/Argentina promotion", "OSINT-level signals only, not a confirmed government-level finding."],
+          ["Unattributed bot network", "Commercial AI detection found the activity but named no operator (Cyabra)."],
+          ["GRU-attributed router compromise", "The one case in this dossier with a named, high-certainty state attribution (SIS)."]
+        ],
+        certHigh: 1, certMedium: 1
+      }],
+      actorNote: "Portugal is a useful control case for this dataset: independent academic research explicitly concludes Portugal is not a primary target of external disinformation, and three of the four coded cases here reflect that — real, documented anomalous activity, but without confident foreign-state attribution. The one high-certainty case (SIS, 2026) is about cyber-espionage and infrastructure risk, not electoral disinformation, which is a genuinely different pattern from most other dossiers in this set.",
+      aims: [
+        ["Damaging Portugal's governing centrist parties","corruption and austerity-linked attack ads against PS and PSD ahead of the 2024 vote."],
+        ["Boosting far-right electoral performance","suspected foreign promotion and a bot network both concentrated on amplifying Chega specifically."],
+        ["Gaining leverage over critical infrastructure and Ukraine-linked supply chains","SIS-flagged risks to submarine cables and companies supplying military equipment to Ukraine."]
+      ],
+      sources: [
+        ["MediaLab (Iscte), via Alliance for Securing Democracy (2024)","University research lab + policy analysis","Medium","https://securingdemocracy.gmfus.org/an-exception-no-more-portugal-seduced-by-the-far-right/"],
+        ["OSINT analysis, Alliance for Securing Democracy newsletter (2024)","Independent OSINT research","Low","https://covertlyyours.substack.com/p/what-happens-in-the-americas-doesnt"],
+        ["Cyabra, 'Fake Voices, Real Votes', via CNN Portugal (May 2025)","Commercial AI disinformation-detection platform","Low","https://markets.financialcontent.com/siliconvalley/article/gnwcq-2025-5-20-cyabra-report-uncovers-coordinated-disinformation-campaign-targeting-portugals-2025-elections-featured-on-cnn"],
+        ["SIS annual threat assessment, via Plataforma Media (Apr. 2026)","National security service","High","https://www.plataformamedia.com/en/2026/04/14/portugal-china-and-russia-as-main-threats-to-internal-security/"]
+      ],
+      sourceNote: "This dossier has the lowest average certainty of any coded so far, and that is a substantive finding, not a methodological weakness: it reflects genuine academic consensus that Portugal sits outside the primary target set for foreign electoral disinformation, distinct from the sustained, high-certainty patterns seen in Germany, France or Austria."
+    },
+
+    SE: {
+      title: "Sweden", eyebrow: "Dossier — member state",
+      meta: "Period 2017-2025 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [4,"documented incidents"], [1,"attributed state actor (Russia)"], [2,'incidents rated "high" severity'], [4,"underlying sources"] ],
+      years: [["2017",2],["2023",1],["2025",1]],
+      timeline: [
+        {id:"SE-2017-01", date:"2017", title:"Staged unrest footage in a Stockholm suburb", cert:"medium", sev:"medium",
+         desc:"A Russian state TV crew reportedly offered local teenagers payment to stage 'action' on camera in Rinkeby, seeking footage to match a narrative of Swedish social breakdown."},
+        {id:"SE-2017-02", date:"Spring 2017", title:"Fabricated handler-conversation screenshot", cert:"medium", sev:"medium",
+         desc:"A fabricated screenshot purporting to show the Stockholm attacker communicating with a handler appeared on a Russian propaganda site one day after the attack."},
+        {id:"SE-2023-01", date:"10 Jan. 2023", title:"SAPO warns of sabotage/destabilisation risk ahead of NATO", cert:"high", sev:"high",
+         desc:"SAPO's director warned Sweden's national defence conference that Russia could use sabotage and violent extremists to destabilise the country ahead of NATO accession."},
+        {id:"SE-2025-01", date:"Reported Mar. 2025", title:"Recruitment of addiction-affected sabotage agents", cert:"high", sev:"high",
+         desc:"SAPO reported Russian intelligence adopting a new tactic of recruiting individuals with substance addiction, valued for low social visibility, to carry out sabotage in Sweden after NATO accession."}
+      ],
+      targets: [
+        ["Public perception","Narrative of Swedish social breakdown","Staged unrest footage aimed at reinforcing a decline narrative (NTV, 2017)."],
+        ["Public trust in investigations","2017 Stockholm terrorist attack inquiry","Fabricated handler-conversation screenshot published within a day of the attack."],
+        ["National security posture","Sweden's stability around its 2024 NATO accession","Central concern of both SAPO warnings, spanning the run-up to and aftermath of accession."]
+      ],
+      actors: [{
+        name: "Russia",
+        sub: "Attributed in all four cases; certainty rises sharply over time, from medium-certainty journalistic/academic attribution in 2017 to high-certainty direct SAPO disclosures in 2023 and 2025.",
+        networks: [
+          ["NTV staged-content operation", "Russian state television crew reportedly paying for fabricated unrest footage."],
+          ["Propaganda site fabrication", "politonline.ru publishing a fabricated screenshot tied to the Stockholm attack."],
+          ["Sabotage recruitment network", "Recruiting addiction-affected individuals as low-visibility, expendable sabotage operatives, per SAPO."]
+        ],
+        certHigh: 2, certMedium: 2
+      }],
+      actorNote: "Sweden's dossier shows a clear escalation pattern: the 2017 cases are narrative-focused disinformation with medium certainty, while the 2023 and 2025 cases are physical-sabotage-oriented and rated with high certainty, directly disclosed by the domestic security service. Academic sources (SCEEUS) are explicit that Sweden has been 'far from a high-priority target' historically, which makes the shift toward direct sabotage recruitment after NATO accession analytically notable rather than a continuation of a pre-existing pattern.",
+      aims: [
+        ["Reinforcing a narrative of Swedish social decline","staged unrest footage designed to manufacture evidence for a pre-existing narrative (NTV, 2017)."],
+        ["Undermining trust in a terrorism investigation","a fabricated screenshot released within a day of the 2017 attack, exploiting the information vacuum immediately following the event."],
+        ["Preparing sabotage capability tied to NATO accession","both SAPO disclosures link intensified Russian activity directly to Sweden's shift from non-alignment to NATO membership."]
+      ],
+      sources: [
+        ["Swedish and Danish media, via EUvsDisinfo","Journalism, EU institutional republication","Medium","https://euvsdisinfo.eu/in-sweden-resilience-is-key-to-combatting-disinformation/"],
+        ["SCEEUS Report No. 18 (2024), Swedish Institute of International Affairs","National academic/policy institute","Medium","https://www.ui.se/globalassets/ui.se-eng/publications/sceeus/2024-publications/russian-information-influence-operations-towards-sweden.pdf"],
+        ["SAPO director Charlotte von Essen, Folk och Forsvar conference (Jan. 2023)","National security service, public statement","High","https://jamestown.org/program/swedens-sapo-reports-that-russia-is-evolving-sabotage-tactics/"],
+        ["SAPO, via TV4 Nyheterna and Jamestown Foundation (Mar. 2025)","National security service","High","https://jamestown.org/program/swedens-sapo-reports-that-russia-is-evolving-sabotage-tactics/"]
+      ],
+      sourceNote: "The two most recent, highest-certainty cases in this dossier concern physical sabotage capability rather than information manipulation in the narrower sense; they are retained here because SAPO itself frames them as part of the same destabilisation strategy as the earlier disinformation cases, consistent with this database's broader definition of external undermining."
+    },
+
+    FI: {
+      title: "Finland", eyebrow: "Dossier — member state",
+      meta: "Period 2022-2026 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [3,"documented incidents"], [1,"attributed state actor (Russia)"], [1,'incident rated "high" severity'], [3,"underlying sources"] ],
+      years: [["2022",1],["2023",1],["2026",1]],
+      timeline: [
+        {id:"FI-2022-01", date:"29 Mar. 2022", title:"SUPO warns of NATO-debate disinformation risk", cert:"high", sev:"medium",
+         desc:"SUPO warned Russia would likely try to influence Finland's NATO membership debate via blackmail, false abuse allegations and deepfakes — while noting no significant change in Russian activity had yet been observed."},
+        {id:"FI-2023-01", date:"2023", title:"State media targeting the Russian-speaking minority", cert:"high", sev:"medium",
+         desc:"SUPO said Russian state media were running disinformation campaigns projecting a negative image of Finland, aimed primarily at Finland's Russian-speaking population."},
+        {id:"FI-2026-01", date:"Mar. 2026", title:"Widespread cyberespionage and influence targeting", cert:"high", sev:"high",
+         desc:"A reorganised SUPO's national assessment found Russian and Chinese activity combining cyberintrusion, espionage and influence campaigns against Finland's tech sector, research institutions and government."}
+      ],
+      targets: [
+        ["Public debate","2022 NATO membership debate","Central concern of the earliest warning, aimed at Finnish public opinion during a pivotal policy decision."],
+        ["Minority community","Russian-speaking population in Finland","Specific target of state-media narratives aimed at both the minority itself and Finland's international image."],
+        ["Strategic sectors","Technology sector, research institutions, government","Broadest and most recent target set, combining cyber and influence methods."]
+      ],
+      actors: [{
+        name: "Russia",
+        sub: "Attributed with high certainty in all three cases, all sourced directly to SUPO — but SUPO's own public statements are unusually explicit that Finland has not been a primary focus of Russian influencing to date, a caveat this dossier preserves rather than smooths over.",
+        networks: [
+          ["NATO-debate influence threat", "Anticipated tactics named by SUPO (blackmail, deepfakes, false abuse claims), not confirmed as deployed at scale."],
+          ["State-media narrative campaign", "Targeting Finland's Russian-speaking minority and international reputation."],
+          ["Combined cyber/espionage/influence activity", "Broadest documented pattern, against technology, research and government targets (2026)."]
+        ],
+        certHigh: 3, certMedium: 0
+      }],
+      actorNote: "Finland's own security service is unusually candid that this dossier should not be over-read: SUPO states explicitly that 'neither Finland nor the Nordic countries have been at the focus of Russian influencing activities' and that no sabotage acts have targeted Finland, unlike some other European countries — and even cautions that Finnish public debate tends to over-attribute ambiguous events (such as drone sightings) to Russian influencing, which SUPO notes 'works in favour of Russia' regardless of whether the attribution is correct. This dossier's high certainty ratings reflect confidence in SUPO as a source, not confidence that Finland faces the same intensity of campaigns as Germany, France or Sweden.",
+      aims: [
+        ["Shaping a pivotal national security decision","anticipated disinformation tactics aimed specifically at the 2022 NATO membership debate."],
+        ["Undermining a domestic minority's standing and cohesion","narratives targeting the Russian-speaking population, a recurring vulnerability SUPO also flags for the future."],
+        ["Long-term strategic and technological penetration","the broadest 2026 assessment describes sustained targeting of research and government rather than acute election-cycle activity."]
+      ],
+      sources: [
+        ["SUPO Director Antti Pelttari, annual report statement (Mar. 2022)","National security service","High","https://www.euronews.com/2022/03/30/deep-fakes-and-blackmail-finland-concerned-about-russian-interference-in-nato-debate"],
+        ["SUPO senior analyst Suvi Alvari, via Digital Watch Observatory","National security service","High","https://dig.watch/updates/finland-warns-against-growing-russian-online-threat"],
+        ["SUPO national security assessment, via The Record (Mar. 2026)","National security service","High","https://therecord.media/finnish-intel-warns-espionage-china-russia"]
+      ],
+      sourceNote: "Every case in this dossier traces to SUPO itself, giving high source-certainty throughout — but readers should note this dossier documents Finland's own security service's assessment of risk and intent, which is explicitly more measured about actual impact to date than the assessments found in several other member-state dossiers in this set."
+    },
+
+    DK: {
+      title: "Denmark", eyebrow: "Dossier — member state",
+      meta: "Period 2023-2026 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [4,"documented incidents"], [1,"attributed state actor (Russia)"], [0,'incidents rated "high" severity'], [4,"underlying sources"] ],
+      years: [["2023",1],["2024",1],["2026",2]],
+      timeline: [
+        {id:"DK-2023-01", date:"2023", title:"PET warns of 'journalist/business cover' spies", cert:"high", sev:"medium",
+         desc:"After Russian officers under diplomatic cover were expelled, PET warned of new undercover operatives targeting Danish maritime, sensor and laser technology relevant to the Russian military."},
+        {id:"DK-2024-01", date:"3 Jun. 2024", title:"Pravfond leak reveals disinformation financing fund", cert:"medium", sev:"medium",
+         desc:"Leaked documents published by DR revealed a nominally independent Russian-state fund financing Kremlin-aligned disinformation campaigns in close to 50 countries."},
+        {id:"DK-2026-01", date:"28 Feb. 2026", title:"PET/FE joint pre-election warning", cert:"high", sev:"medium",
+         desc:"Denmark's police and military intelligence services jointly warned of possible Russian disinformation and cyberattacks ahead of the 24 March election, against a backdrop of US pressure over Greenland."},
+        {id:"DK-2026-02", date:"Mar. 2026 election period", title:"Fringe Telegram activity and DDoS claims — a 'low-return' case", cert:"medium", sev:"low",
+         desc:"Actual monitoring found only fringe pro-Russian Telegram disinformation and hacker-claimed DDoS attacks on party websites; analysts concluded Denmark was comparatively under-targeted relative to more pivotal states voting the same period."}
+      ],
+      targets: [
+        ["Technology and research sectors","Maritime, sensor, laser and industrial technology","Persistent espionage target per PET, independent of the electoral cycle."],
+        ["Election","24 March 2026 general election","Subject of an official pre-election warning, but ultimately only lightly targeted in practice."],
+        ["Global disinformation infrastructure","Financing mechanisms active in ~50 countries","Denmark's role here is as the country where the leak surfaced, not necessarily as the primary target of Pravfond's activity."]
+      ],
+      actors: [{
+        name: "Russia",
+        sub: "Attributed in all four cases, but with a distinctive pattern: high-certainty warnings and infrastructure disclosures coexist with a documented, comparatively low realised level of election-period activity.",
+        networks: [
+          ["Diplomatic-cover replacement network", "Operatives posing as journalists or business people after prior expulsions, per PET."],
+          ["Pravfond financing structure", "Secretly state-established fund revealed via leaked documents, active across dozens of countries."],
+          ["Fringe Telegram / opportunistic hackers", "Low-intensity, apparently non-state-directed activity during the actual 2026 election period."]
+        ],
+        certHigh: 2, certMedium: 2
+      }],
+      actorNote: "Denmark is this dataset's clearest 'dog that didn't bark' case, to borrow EUvsDisinfo's own framing: PET states it has 'not detected any foreign state interference activity in connection with elections in Denmark', and post-election analysis explicitly concluded Russia treated Denmark as a comparatively low-return target next to more polarised or strategically pivotal states voting the same period, such as Hungary. This dossier keeps the real, ongoing espionage and financing-infrastructure findings (which are serious) analytically distinct from the election-specific picture (which was notably muted) rather than merging them into a single threat narrative.",
+      aims: [
+        ["Sustained technological and research espionage","persistent, non-electoral targeting of Danish maritime, sensor and industrial expertise (PET)."],
+        ["Maintaining global disinformation financing capacity","the Pravfond structure supports campaigns far beyond Denmark; its Danish exposure was incidental to a broader network."],
+        ["Selective rather than universal electoral interference","the muted 2026 election activity is read by analysts as evidence Russia allocates interference effort where returns are highest, not as evidence of disengagement generally."]
+      ],
+      sources: [
+        ["PET annual espionage threat assessment, via The Record (May 2023)","National security service","High","https://therecord.media/denmark-russian-spies-warning-journalists-business-people"],
+        ["DR investigation, via intelNews.org (Jun. 2024)","Public broadcaster investigation, leaked documents","Medium","https://intelnews.org/tag/pet-denmark/"],
+        ["PET/FE joint statement, via UNITED24 Media (Mar. 2026)","National security and military intelligence services","High","https://united24media.com/latest-news/russia-poses-main-threat-to-denmarks-march-election-intelligence-services-warn-16416"],
+        ["EUvsDisinfo, 'The dog that didn't bark' (May 2026)","EU institutional monitoring + partner analysis","Medium","https://euvsdisinfo.eu/the-dog-that-didnt-bark-what-the-danish-election-reveals-about-russian-influence-operations/"]
+      ],
+      sourceNote: "No case in this dossier is rated 'high' severity — a deliberate reflection of the sources themselves, which describe warnings and standing espionage risk rather than a realised, large-scale campaign. Denmark is included precisely because a credible database of external undermining must also show where anticipated threats did not fully materialise, not only where they did."
+    },
+
+    IE: {
+      title: "Ireland", eyebrow: "Dossier — member state",
+      meta: "Period 2024-2025 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [4,"documented incidents"], [2,"attributed state actors (Russia, China)"], [0,'incidents rated "high" severity'], [4,"underlying sources"] ],
+      years: [["2024",3],["2025",1]],
+      timeline: [
+        {id:"IE-2024-01", date:"From Mar. 2024, flagged May 2024", title:"Viginum-flagged network extends into Ireland", cert:"medium", sev:"medium",
+         desc:"French officials told Ireland's Foreign Affairs Department that a Russian disinformation network active in France had extended into Ireland via a low-quality Irish-language pro-Russia website; effect on opinion unclear."},
+        {id:"IE-2024-02", date:"Sep. 2023-Sep. 2024", title:"Ireland ranks 29th of 38 for Russian network volume", cert:"high", sev:"medium",
+         desc:"Norwegian defence research found comparatively low Russian but disproportionately high Chinese social-media network interest in Ireland relative to its population."},
+        {id:"IE-2024-03", date:"2024", title:"Naval activity flagged as cable-infrastructure risk", cert:"high", sev:"medium",
+         desc:"Ireland's Defence Policy Review cited Russian naval activity near Irish shores as a hybrid risk to the undersea cables that pass through Irish waters."},
+        {id:"IE-2025-01", date:"2025", title:"State media exploits migration unrest and the presidential vote", cert:"high", sev:"medium",
+         desc:"ISD found Russian state media exploiting migration-related unrest and the 2025 presidential election to push anti-Western governance narratives; Chinese activity stayed focused on pro-Beijing messaging, not the election."}
+      ],
+      targets: [
+        ["Election","2024 European Parliament elections","Target of the Viginum-flagged Irish-language disinformation site."],
+        ["Public opinion","General social-media discourse about Ireland","Broadest target, measured directly by network-level monitoring (Norwegian FFI)."],
+        ["Critical infrastructure","Transatlantic undersea cables in Irish waters","Flagged as a hybrid risk rather than a confirmed attack (Defence Policy Review)."],
+        ["Election","2025 presidential election","Exploited via migration-unrest narratives rather than election-specific fabrication, per ISD."]
+      ],
+      actors: [
+        { name: "Russia", sub: "Attributed in three of four cases, consistently characterised across sources as lower-volume than in larger EU states, but present and monitored.",
+          networks: [
+            ["Irish-language pro-Russia site", "Low-quality, apparently low-impact content flagged by French VIGINUM."],
+            ["General influence network activity", "6,058 posts mentioning Ireland from known Russian networks, ranked 29th of 38 countries by volume."],
+            ["State media / migration-narrative exploitation", "Opportunistic use of domestic unrest rather than dedicated election fabrication."]
+          ], certHigh: 2, certMedium: 1 },
+        { name: "China", sub: "Attributed in one case directly, with a second (FFI) finding disproportionately high volume relative to Ireland's size.",
+          networks: [["Pro-Beijing narrative reinforcement", "1,538 posts mentioning Ireland, ranked 16th of 38 countries — higher relative interest than Russia, per FFI; ISD found no anti-migrant or election-specific Chinese content."]],
+          certHigh: 1, certMedium: 0 }
+      ],
+      actorNote: "Ireland's most distinctive feature in this dataset is the Russia/China balance: multiple independent sources (Norwegian FFI, ISD) agree Ireland sees comparatively low-volume Russian activity but disproportionately high Chinese interest relative to its population and EU weight — the reverse of the pattern in most other dossiers here, where Russia dominates overwhelmingly. Analysts link this to Ireland's more ambivalent public stance toward China compared to some EU peers.",
+      aims: [
+        ["Eroding EU support for Ukraine via a small, low-cost foothold","the Irish-language site was explicitly linked to the same Viginum-flagged network aiming to reduce European support for Ukraine (VIGINUM/DFA)."],
+        ["Exploiting domestic unrest opportunistically","migration-related unrest used as a vehicle for anti-Western-governance narratives rather than bespoke election fabrication (ISD)."],
+        ["Reinforcing a positive China narrative rather than disrupting Irish politics","Chinese activity was consistently found to avoid domestic political interference, focusing instead on image-building (ISD, FFI)."],
+        ["Probing critical undersea infrastructure","naval activity near Irish waters flagged as a standing hybrid risk to transatlantic cables, not (yet) a realised attack."]
+      ],
+      sources: [
+        ["Irish Times, citing VIGINUM and DFA sources (May 2024)","Journalism + national/foreign government sourcing","Medium","https://www.irishtimes.com/politics/2024/05/11/france-warns-department-of-foreign-affairs-about-russian-efforts-to-extend-disinformation-activities-into-ireland/"],
+        ["Norwegian Defence Research Establishment, via Irish Examiner (Mar. 2025)","Foreign national defence research institute","High","https://www.irishexaminer.com/news/arid-41595262.html"],
+        ["Department of Defence, Defence Policy Review 2024, via Irish Examiner","National government department","High","https://www.irishexaminer.com/news/arid-41443963.html"],
+        ["Institute for Strategic Dialogue, digital dispatch (Apr. 2026)","Specialised research institute","High","https://www.isdglobal.org/digital-dispatch/foreign-actors-and-foreign-influence-an-exploratory-analysis-of-international-state-and-son-state-sctors-targeting-ireland-in-2025/"]
+      ],
+      sourceNote: "Ireland's dossier draws heavily on foreign and international sources (French VIGINUM, Norwegian FFI, the UK/international ISD) rather than a dedicated domestic counter-disinformation body — Irish news coverage explicitly notes the country still lacks a state structure to counter disinformation, with a promised National Counter Disinformation Strategy report still pending at time of coding."
+    },
+
+    LT: {
+      title: "Lithuania", eyebrow: "Dossier — member state",
+      meta: "Period 2020-2025 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [4,"documented incidents"], [2,"attributed state actors (Russia, Belarus)"], [0,'incidents rated "high" severity'], [4,"underlying sources"] ],
+      years: [["2020",1],["2024",2],["2025",1]],
+      timeline: [
+        {id:"LT-2020-01", date:"2020", title:"Coordinated media campaign over a Belarus resolution", cert:"medium", sev:"medium",
+         desc:"After Lithuania's parliament condemned Russia's 'imposed union' on Belarus, Minsk- and Moscow-controlled media ran a coordinated campaign accusing Lithuania of destabilising Russia-Belarus unity."},
+        {id:"LT-2024-01", date:"Days before May 2024 vote", title:"Belarus-coordinated FIMI operation targets presidential candidates", cert:"high", sev:"medium",
+         desc:"A Belarus-coordinated operation targeted presidential candidates, including interviews aired on Belarusian state TV, aimed at discouraging turnout by framing the election as meaningless and Lithuania as a Western puppet."},
+        {id:"LT-2024-02", date:"2024", title:"Religious channels used to promote traditionalist candidates", cert:"medium", sev:"medium",
+         desc:"VSD found sermons and religious newsletters subtly promoting scepticism toward 'Western liberalism' and endorsing traditionally oriented candidates."},
+        {id:"LT-2025-01", date:"Mar. 2025", title:"Escalating 'history' narrative attacks, AI-assisted", cert:"high", sev:"medium",
+         desc:"VSD reported growing Russian accusations that Lithuania rewrites history and promotes Nazism, warning AI-generated content would make such disinformation more effective, especially around the WWII 80th anniversary."}
+      ],
+      targets: [
+        ["Public trust in institutions","The Lithuanian presidency and parliament","Target of the 2020 campaign following the Belarus resolution."],
+        ["Election","May 2024 presidential election","Target of the Belarus-coordinated FIMI operation aimed at candidates and turnout."],
+        ["Religious/traditionalist voter bloc","Voters receptive to 'Western liberalism' scepticism narratives","Targeted via sermons and religious newsletters (VSD, 2024)."],
+        ["National reputation","Lithuania's historical narrative internationally","Central to the escalating 2025 'history revision/Nazism' accusation campaign."]
+      ],
+      actors: [
+        { name: "Russia", sub: "Attributed in three of four cases, consistently by VSD or VSD-citing analysis.",
+          networks: [
+            ["State-controlled media campaign", "Coordinated with Belarusian outlets around the 2020 parliamentary resolution."],
+            ["Religious-channel influence", "Sermons and newsletters used as a hyperlocal amplification channel (VSD)."],
+            ["History/reputation attack narrative", "Escalating accusations of Nazism-promotion and history revision, increasingly AI-assisted (VSD, 2025)."]
+          ], certHigh: 2, certMedium: 1 },
+        { name: "Belarus", sub: "Attributed with high certainty by EEAS/EUvsDisinfo in the one case where Belarus, rather than Russia, was identified as the coordinating actor.",
+          networks: [["FIMI operation via Belarusian state TV", "Candidate interviews aired on a Belarusian programme days before the 2024 presidential vote, aimed at discrediting candidates and suppressing turnout."]],
+          certHigh: 1, certMedium: 0 }
+      ],
+      actorNote: "Lithuania's dossier illustrates the Russia-Belarus division of labour documented across the Baltic states: Belarus-linked entities handle some election-specific FIMI operations (2024 presidential race) while Russia's own VSD-attributed activity focuses more on longer-run reputational and identity narratives (history, religion, 'Western liberalism'). Both are treated as analytically distinct actors here rather than folded into a single 'Russia-aligned' bucket, consistent with how the sources themselves attribute each case.",
+      aims: [
+        ["Punishing Lithuania for anti-Kremlin parliamentary positions","the 2020 campaign was a direct, near-immediate response to a specific parliamentary resolution."],
+        ["Suppressing democratic participation directly","the 2024 Belarus-coordinated operation explicitly aimed to discourage voting, not just shift preferences."],
+        ["Building hyperlocal narrative footholds","using trusted community channels (religious sermons) rather than obviously foreign media, per VSD."],
+        ["Undermining Lithuania's international standing over the long run","sustained, escalating accusations about historical revisionism aimed at reputational rather than immediate electoral effect."]
+      ],
+      sources: [
+        ["Springer academic analysis (2023)","Peer-reviewed academic research","Medium","https://link.springer.com/chapter/10.1007/978-3-031-33716-1_6"],
+        ["EUvsDisinfo, 'Manipulated voices' (May 2024)","EU institutional monitoring","High","https://euvsdisinfo.eu/manipulated-voices-belaruss-disinformation-targeting-lithuanian-democracy/"],
+        ["VSD, cited in 'The Kremlin's Shadow' analysis (2024)","National security service, via academic citation","Medium","https://www.blue-europe.eu/analysis-en/full-reports/the-kremlins-shadow-strategy-and-tactics-of-russian-interference-in-the-baltic-states-elections/"],
+        ["VSD, 'Influence activities against Lithuania' (Mar. 2025)","National security service","High","https://www.vsd.lt/en/reports/influence-activities-against-lithuania/russia-seeks-to-discredit-lithuania-increasingly-accusing-it-of-rewriting-history-promoting-nazism-and-spreading-russophobia/"]
+      ],
+      sourceNote: "Lithuania is one of only two dossiers coded so far (with Netherlands and Poland) where a second state actor (Belarus) is identified separately from Russia with its own high-certainty attribution, rather than only appearing in a joint/ambiguous characterisation — reflecting VSD's own practice of distinguishing Russian and Belarusian activity even when coordinated."
+    },
+
+    LV: {
+      title: "Latvia", eyebrow: "Dossier — member state",
+      meta: "Period 2018-2025 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [4,"documented incidents"], [1,"attributed state actor (Russia)"], [1,'incident rated "high" severity'], [4,"underlying sources"] ],
+      years: [["2018",1],["2023",1],["2024",1],["2025",1]],
+      timeline: [
+        {id:"LV-2018-01", date:"6 Oct. 2018", title:"Election-day hack of Latvia's leading social network", cert:"low", sev:"low",
+         desc:"Draugiem.lv was hacked on parliamentary election day; no user data was affected, results were unchanged, and even Russian-language media covered it factually — cited as an example of societal resilience."},
+        {id:"LV-2023-01", date:"2023", title:"VDD names Russia the top national security threat", cert:"high", sev:"high",
+         desc:"Latvia's security service cited malign activity against state infrastructure, aggressive intelligence operations and psychological operations aimed at public opinion, alongside continued Belarusian and Chinese risks."},
+        {id:"LV-2024-01", date:"2022-2024", title:"Propaganda shifts online after state-media ban", cert:"medium", sev:"medium",
+         desc:"After Latvia banned Russian state broadcasters, analysis found propaganda shifted online, aimed at sowing transatlantic and domestic discord and discrediting Ukrainian statehood."},
+        {id:"LV-2025-01", date:"Ongoing", title:"'Robotrolling': sustained bot-network campaigns", cert:"high", sev:"medium",
+         desc:"NATO's Riga-based StratCom Centre of Excellence documented sustained Russian bot-network activity targeting Latvian and Baltic social media discourse."}
+      ],
+      targets: [
+        ["Election infrastructure","Draugiem.lv (leading domestic social network)","Hacked on election day 2018, with no effect on the outcome."],
+        ["National security infrastructure","Latvian state infrastructure and public opinion","Central concern of the VDD's 2023 threat assessment."],
+        ["Public discourse","Transatlantic and domestic societal cohesion; Ukraine support","Target of the online propaganda shift documented from 2022 onward."],
+        ["Social media environment","Latvian and Baltic-wide online discourse","Sustained target of bot-network 'Robotrolling' activity."]
+      ],
+      actors: [{
+        name: "Russia",
+        sub: "Attributed in three of four cases with medium-to-high certainty; the earliest case (2018 hack) carries no confirmed attribution at all, illustrating that not every anomalous digital event during an election is confidently linkable to a state actor.",
+        networks: [
+          ["Unattributed 2018 hack", "No confirmed operator; included specifically as a low-severity, low-certainty control case."],
+          ["State intelligence/psychological operations", "Broad-spectrum activity against infrastructure and public opinion (VDD, 2023)."],
+          ["Post-ban online propaganda", "Migrated from banned state broadcasters to online channels (Atlantic Council)."],
+          ["Robotrolling bot networks", "Sustained, NATO-documented automated social-media manipulation."]
+        ],
+        certHigh: 2, certMedium: 1
+      }],
+      actorNote: "Latvia's own VDD is notably candid in its public communications, repeatedly stating it has 'not detected any attempts to unlawfully influence the results' of specific elections (European Parliament 2024, municipal elections) even while describing Russia as the top general security threat in its annual reporting. This dossier reflects that duality: sustained, well-documented structural threat activity coexists with an explicit absence of confirmed electoral-outcome manipulation in specific votes, and both are preserved here rather than collapsed into a single alarm level.",
+      aims: [
+        ["Provoking discord within Latvia and the transatlantic community","identified by Atlantic Council analysis as a primary Russian objective in its online campaigns."],
+        ["Discrediting Ukrainian statehood and undermining support for Ukraine","a consistent narrative goal across the post-2022 propaganda shift."],
+        ["Sustained infrastructure and intelligence pressure independent of election cycles","VDD's 2023 assessment frames this as an ongoing baseline threat, not an event-driven spike."],
+        ["Automated amplification to manufacture apparent consensus","the specific function of bot-network activity documented under Robotrolling."]
+      ],
+      sources: [
+        ["DFRLab, '#ElectionWatch: Social Media Hack on Latvian Election Day' (2018)","OSINT investigative research","Low","https://medium.com/dfrlab/electionwatch-social-media-hack-on-latvian-election-day-9637d6543de3"],
+        ["VDD annual report, press release","National security service","High","https://vdd.gov.lv/en/news/press-releases/vdd-publishes-its-annual-report"],
+        ["Atlantic Council, 'Latvia has answers' (May 2025)","Think-tank analysis, citing national sources","Medium","https://www.atlanticcouncil.org/blogs/new-atlanticist/whats-the-best-way-to-deal-with-russian-information-manipulation-latvia-has-answers/"],
+        ["NATO StratCom Centre of Excellence, Robotrolling series","NATO-affiliated specialised research centre","High","https://www.disinfo.eu/wp-content/uploads/2025/08/20250809_Disinfo-landscape-in-Latvia-v2.pdf"]
+      ],
+      sourceNote: "Latvia benefits from an unusually dense local research infrastructure — the Riga-based NATO StratCom Centre of Excellence and the annual Riga StratCom Dialogue are both physically located in-country — which likely contributes to the relatively high certainty ratings here independent of any difference in underlying threat intensity compared to neighbouring states."
+    },
+
+    EE: {
+      title: "Estonia", eyebrow: "Dossier — member state",
+      meta: "Period 2019-2025 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [5,"documented incidents"], [1,"attributed state actor (Russia)"], [4,'incidents rated "high" severity'], [4,"underlying sources"] ],
+      years: [["2019",1],["2023",1],["2024",1],["2025",1]],
+      timeline: [
+        {id:"EE-2019-01", date:"2019", title:"'Operation Pinball' targets EU relationship", cert:"high", sev:"high",
+         desc:"Recorded Future uncovered a covert influence operation undermining Estonia's government and its EU relationship while exploiting the refugee crisis, sharing tactics with the Secondary Infektion campaign."},
+        {id:"EE-2023-01", date:"2023", title:"300+ troll accounts target minority turnout", cert:"high", sev:"high",
+         desc:"KAPO identified over 300 troll accounts aimed at lowering minority voter turnout and amplifying Estonian/Russian-speaking community tensions ahead of the parliamentary election."},
+        {id:"EE-2024-01", date:"2024", title:"Doppelganger cloning, border intimidation, vandalism", cert:"high", sev:"high",
+         desc:"Estonia saw Doppelganger site-cloning during the EP elections, intensified FSB recruitment/intimidation at the Russia border, and a vandalism incident assessed as intimidation of Estonian society broadly."},
+        {id:"EE-2025-01", date:"2025", title:"Shift to youth-targeted, AI-assisted propaganda", cert:"high", sev:"high",
+         desc:"KAPO reported declining older-generation Kremlin sympathy prompting a pivot to the younger Russian-speaking population via deepfakes and AI-assisted manipulation, alongside a record 16 detentions for Russian-intelligence-linked activity in 2024."}
+      ],
+      targets: [
+        ["EU relationship","Estonia's standing with EU institutions","Direct target of Operation Pinball (2019)."],
+        ["Election","2023 parliamentary election","Target of the 300+ troll-account minority-turnout suppression effort."],
+        ["Election / society broadly","2024 EP elections; general societal cohesion","Combined target of Doppelganger cloning and intimidation-linked vandalism."],
+        ["Demographic group","Younger Russian-speaking Estonians","Emerging, deliberately generational target identified in KAPO's 2025 report."]
+      ],
+      actors: [{
+        name: "Russia",
+        sub: "Attributed with high certainty in all five cases — the most consistently high-certainty dossier in this dataset, reflecting KAPO's unusually direct and specific public reporting.",
+        networks: [
+          ["Operation Pinball", "Self-publisher blogs and Reddit-based disinformation sharing tactics with Secondary Infektion."],
+          ["Minority-turnout troll network", "300+ accounts identified by KAPO ahead of the 2023 election."],
+          ["Doppelganger", "Cross-border cloned-media operation, shared infrastructure with the Germany/France/EU cases."],
+          ["FSB border recruitment/intimidation", "Data seizures and fabricated-charge detentions of border crossers."],
+          ["Youth-targeted AI propaganda", "Deepfakes and algorithmic manipulation aimed specifically at younger Russian-speaking Estonians."]
+        ],
+        certHigh: 5, certMedium: 0
+      }],
+      actorNote: "Estonia has the highest concentration of high-certainty, high-severity cases of any dossier coded so far, consistent with its reputation — noted in independent commentary — as a NATO leader on countering election interference, precisely because it treats the threat as serious and reports on it specifically rather than in vague generalities. KAPO's own generational framing (declining older-generation sympathy, rising focus on youth) is a genuinely distinctive, forward-looking element not seen in other Baltic dossiers.",
+      aims: [
+        ["Weakening Estonia's relationship with EU institutions","explicit framing of Operation Pinball's objective (Recorded Future)."],
+        ["Suppressing minority electoral participation strategically","troll activity aimed specifically at lowering turnout rather than only shifting preferences (KAPO, 2023)."],
+        ["Intimidating Estonian society as a general deterrent","vandalism assessed by police/KaPo as symbolic intimidation rather than a purely criminal act."],
+        ["Cultivating a new generation of sympathisers","the youth-focused pivot represents a long-horizon investment distinct from short-term electoral manipulation."]
+      ],
+      sources: [
+        ["Recorded Future / Insikt Group, via Computer Weekly (Apr. 2020)","Commercial threat-intelligence firm","High","https://www.computerweekly.com/news/252481370/Revealed-Estonia-targeted-in-Russia-linked-disinformation-deluge"],
+        ["KAPO investigation, cited in 'The Kremlin's Shadow' (2024)","National security service, via academic citation","High","https://www.blue-europe.eu/analysis-en/full-reports/the-kremlins-shadow-strategy-and-tactics-of-russian-interference-in-the-baltic-states-elections/"],
+        ["CSDS analysis, citing KaPo (Jul. 2024)","Academic policy centre + national security service","High","https://csds.vub.be/publication/shadow-war-what-estonia-and-poland-tell-us-about-russias-clandestine-operations-in-europe/"],
+        ["KAPO annual national security report, via Odessa Journal (Apr. 2025)","National security service","High","https://odessa-journal.com/russian-intelligence-continues-to-take-an-interest-in-estonia"]
+      ],
+      sourceNote: "Every source in this dossier is either a specialised threat-intelligence firm or Estonia's own security service, with no purely journalistic or NGO-only attribution — a narrower but consistently authoritative source base than several other member-state dossiers in this set."
+    },
+
+    SI: {
+      title: "Slovenia", eyebrow: "Dossier — member state",
+      meta: "Period 2025-2026 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [2,"documented incidents"], [1,'incident with confirmed non-state actor'], [2,'incidents rated "high" severity'], [2,"underlying sources"] ],
+      years: [["2025",0],["2026",2]],
+      timeline: [
+        {id:"SI-2026-01", date:"Contact Dec. 2025, confirmed 20 Mar. 2026", title:"SOVA confirms Black Cube contact with opposition HQ", cert:"high", sev:"high",
+         desc:"Slovenia's intelligence agency confirmed representatives of the private intelligence firm Black Cube had contact with the opposition SDS party's headquarters, presenting this as evidence of foreign interference; the government did not itself name the firm, and no link to any foreign government has been established."},
+        {id:"SI-2026-02", date:"Through 22 Mar. 2026", title:"Balkan disinformation corridor targets the election", cert:"medium", sev:"high",
+         desc:"Civil-society monitors identified a Telegram-centred disinformation network using North Macedonia as a hub, distributing narratives aligned with Moscow-linked regional actors ahead of the vote."}
+      ],
+      targets: [
+        ["Political party","Opposition SDS party and its leadership","Direct subject of the confirmed Black Cube contact."],
+        ["Election","22 March 2026 parliamentary election","Common target of both cases, via different mechanisms — covert corporate intelligence activity and networked disinformation."],
+        ["Public trust in institutions","Confidence in Slovenian democratic processes","General target of the disinformation-corridor narratives, per CIVIL Today."]
+      ],
+      actors: [
+        { name: "Israeli private intelligence firm (state link not established)", sub: "Confirmed by SOVA to have had direct contact with a party headquarters; explicitly not linked by any source to the Israeli government or any other state.",
+          networks: [["Black Cube-linked individuals", "Three named representatives confirmed present in Slovenia by SOVA; evidence referred to police and prosecutors."]],
+          certHigh: 1, certMedium: 0 },
+        { name: "Multiple actors (Russia and regional proxies)", sub: "Attributed by civil-society monitoring rather than official government confirmation; SOVA has not itself disclosed account-level detail on this network.",
+          networks: [["Cross-border Telegram disinformation network", "Hungary-Serbia-Russia-linked content distributed via a North Macedonia-based hub, per CIVIL Today."]],
+          certHigh: 0, certMedium: 1 }
+      ],
+      actorNote: "Slovenia is the first dossier in this set built around a confirmed non-state, for-profit intelligence firm rather than a state security or military-intelligence service — a genuinely different actor category from the Russia/China/Belarus pattern elsewhere. This dossier deliberately avoids the government-attribution question the sources themselves leave open: SOVA confirmed the firm's conduct and its own assessment that this constitutes foreign interference, without confirming which government, if any, directed it. Both this and the separately reported Balkan disinformation-corridor case are recorded on their own terms rather than merged into a single narrative.",
+      aims: [
+        ["Gathering compromising material on a major political party","direct contact with SDS headquarters, followed by leaked recordings alleging corruption within the rival governing coalition."],
+        ["Testing new EU foreign-interference mechanisms","Prime Minister Golob explicitly framed the case as a challenge to the newly established European Democracy Shield in his letter to the European Commission."],
+        ["Eroding institutional trust via networked amplification","the separately documented Telegram-based corridor aimed at broader disinformation saturation during the official election-silence period."]
+      ],
+      sources: [
+        ["SOVA director Josko Kadivnik, Slovenian government statement (Mar. 2026)","National security service + government statement","High","https://www.gov.si/en/news/2026-03-20-new-findings-on-foreign-interference-in-slovenias-elections/"],
+        ["CIVIL Today, 'Slovenia's Elections and the Balkan Disinformation Corridor' (Mar. 2026)","Civil-society media monitoring organisation","Medium","https://civil.today/slovenias-elections-and-the-balkan-disinformation-corridor/"]
+      ],
+      sourceNote: "This dossier is deliberately narrow and recent, reflecting events still unfolding at time of coding. Given the political and diplomatic sensitivity of the Black Cube case, only SOVA's own confirmed statements and neutral wire-style reporting were used; more editorialised commentary on the case was excluded from sourcing here."
+    },
+
+    HR: {
+      title: "Croatia", eyebrow: "Dossier — member state",
+      meta: "Period 2024 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [2,"documented incidents"], [1,"attributed state actor (Russia)"], [0,'incidents rated "high" severity'], [2,"underlying sources"] ],
+      years: [["2024",2]],
+      timeline: [
+        {id:"HR-2024-01", date:"Dec. 2024 - Jan. 2025", title:"Confirmed pro-Kremlin bot networks target the presidential race", cert:"medium", sev:"medium",
+         desc:"CIR and Croatian researchers confirmed pro-Russian, anti-EU and anti-NATO bot activity across X, Facebook, Reddit and TikTok — though the seemingly favoured incumbent won the runoff overwhelmingly regardless, leaving researchers to note the puzzle of the campaign's apparent aim."},
+        {id:"HR-2024-02", date:"2024 election period", title:"Deepfake audio targets President Milanovic", cert:"low", sev:"medium",
+         desc:"A deepfake audio clip falsely depicted President Milanovic discussing a gambling habit; the entity behind it was never established, in a political environment EDMO found especially fertile for disinformation."}
+      ],
+      targets: [
+        ["Election","2024-2025 presidential election","Target of both the confirmed bot-network activity and the deepfake audio case."],
+        ["Individual candidate","President Zoran Milanovic","Direct subject of the deepfake fabrication; also the apparent (if puzzlingly redundant) beneficiary of the bot campaign."]
+      ],
+      actors: [{
+        name: "Russia",
+        sub: "Attributed with medium certainty in the bot-network case (CIR); the deepfake case carries no confirmed attribution at all.",
+        networks: [
+          ["Pro-Kremlin bot networks", "Cross-platform activity confirmed by CIR and Croatian researchers, anti-EU/anti-NATO in orientation."],
+          ["Unattributed deepfake production", "AI-generated audio fabrication; creator never identified (EDMO)."]
+        ],
+        certHigh: 0, certMedium: 1
+      }],
+      actorNote: "Croatia is an analytically unusual case: researchers confirmed real, cross-platform pro-Kremlin bot activity, yet explicitly flagged that its apparent beneficiary won by such a wide margin that the campaign's strategic purpose is genuinely unclear — an honesty about interpretive limits this dossier preserves rather than resolves. The EEAS itself characterised Croatia's 2024 election as showing tactical 'evolution rather than revolution', suggesting continuity with established patterns rather than an escalation specific to Croatia.",
+      aims: [
+        ["Amplifying anti-EU and anti-NATO sentiment generally","the confirmed bot networks pushed these narratives regardless of specific electoral effect (CIR)."],
+        ["Discrediting a specific candidate personally","the deepfake targeted Milanovic's personal reputation directly, independent of any broader narrative campaign."]
+      ],
+      sources: [
+        ["Centre for Information Resilience, via bne IntelliNews (Jan. 2025)","Specialised disinformation-research organisation + journalism","Medium","https://www.intellinews.com/pro-kremlin-disinformation-campaign-reportedly-targeted-croatian-presidential-election-360703/"],
+        ["EDMO/ADMO Report No. 8 (Jun. 2024)","EU-affiliated media observatory research","Low","https://edmo.eu/wp-content/uploads/2024/06/ADMO_report_8.pdf"]
+      ],
+      sourceNote: "This dossier took two dedicated search passes to substantiate to the standard applied elsewhere in this database; earlier searches surfaced only generic warnings and a fact-check debunking an unrelated overstated interference claim. Both are genuine, specific, sourced cases — not the strongest evidentiary base in this set, but real, and coded on the same terms as every other member state."
+    },
+
+    MT: {
+      title: "Malta", eyebrow: "Dossier — member state",
+      meta: "Period 2017 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [1,"documented incident"], [1,'incident with alleged, unconfirmed state actor'], [0,'incidents rated "high" severity'], [1,"underlying source"] ],
+      years: [["2017",1]],
+      timeline: [
+        {id:"MT-2017-01", date:"May-Jun. 2017", title:"Fabricated 'Egrant' corruption claim, alleged Russian retaliation", cert:"low", sev:"medium",
+         desc:"PM Muscat said allied intelligence services told Malta a Russian national had fabricated corruption claims against his wife, possibly in retaliation for Malta refusing to refuel Russian naval vessels and backing the EU's Ukraine visa waiver — but stated explicitly there was no evidence linking the fabricator to Russian security services."}
+      ],
+      targets: [
+        ["Head of government's family","Michelle Muscat (PM's wife)","Subject of the fabricated 'Egrant' Panama-company corruption allegation."],
+        ["Governing party","Labour Party ahead of the June 2017 snap election","Allegations contributed to street protests and the timing of the snap election."]
+      ],
+      actors: [{
+        name: "Russia (alleged, unconfirmed)",
+        sub: "The Maltese government itself explicitly declined to confirm state involvement — the single lowest-certainty primary attribution in this dataset, retained precisely because the government's own caution is analytically significant.",
+        networks: [["Individual fabricator", "A single Russian national alleged to have invented the underlying story; no organisational or state-directed network identified."]],
+        certHigh: 0, certMedium: 0
+      }],
+      actorNote: "Malta's sole coded case is unusual on two counts: the alleged 'interference' took the form of a fabricated corruption story rather than a pro-Russian narrative, and the motive offered was retaliatory (Malta's refusal to refuel Russian naval vessels and its support for Ukraine-related EU measures) rather than an attempt to install a preferred government. The Maltese Prime Minister's own explicit statement that there was 'no evidence' tying the fabricator to Russian security services is preserved here rather than smoothed into a firmer claim — this is the most openly uncertain attribution in the entire dataset.",
+      aims: [
+        ["Retaliating against specific foreign-policy decisions","the alleged motive was punitive — Malta's refusal to refuel Russian naval vessels and its EU-Ukraine visa waiver support — rather than shaping an electoral outcome directly."],
+        ["Damaging a specific governing family's reputation","the fabricated claim targeted the Prime Minister's wife personally, contributing to street protests and political pressure around the snap election."]
+      ],
+      sources: [
+        ["Prime Minister Joseph Muscat, press conference, via wire report (May 2017)","Government statement, via press agency","Low","https://www.pressreader.com/oman/oman-daily-observer/20170525/281822873744607"]
+      ],
+      sourceNote: "This is the thinnest dossier in the dataset by design: a single, single-sourced, low-certainty case. It is included rather than omitted because it is genuinely documented and squarely on-topic, consistent with this project's commitment to apply the same inclusion threshold to every member state regardless of size or region — but readers should not read the low incident count as evidence that Malta faces comparatively little risk, only that comparatively little has been publicly documented and attributed at time of coding."
+    },
+
+    CY: {
+      title: "Cyprus", eyebrow: "Dossier — member state",
+      meta: "Period 2017-2026 · updated from the Incident Database, 'Incidents' tab",
+      stats: [ [2,"documented incidents"], [1,"attributed state actor (Russia)"], [1,'incident rated "high" severity'], [2,"underlying sources"] ],
+      years: [["2017",1],["2026",1]],
+      timeline: [
+        {id:"CY-2017-01", date:"Apr. 2017", title:"Cyprus probed as a money-laundering conduit", cert:"medium", sev:"medium",
+         desc:"A US House Intelligence Committee member investigated Cypriot offshore accounts as a possible tool for laundering funds connected to Russian election-interference activity abroad; no formal report followed."},
+        {id:"CY-2026-01", date:"9 Jan. 2026", title:"Doppelganger-style kompromat video, timed to EU presidency", cert:"medium", sev:"high",
+         desc:"Cyprus's security services assessed a video alleging corruption and sanctions-evasion among President Christodoulides's associates as bearing Doppelganger-style hallmarks, released as Cyprus assumed the EU Council presidency with Zelenskyy visiting — while not ruling out another actor using similar methods."}
+      ],
+      targets: [
+        ["Financial system","Cypriot offshore banking sector","Investigated as a facilitation conduit rather than a direct target (2017)."],
+        ["Head of state's circle","President Christodoulides's associates; the EU Council presidency","Direct target of the 2026 kompromat video, timed for maximum diplomatic visibility."]
+      ],
+      actors: [{
+        name: "Russia",
+        sub: "Attributed with medium certainty in both cases; the 2026 assessment explicitly does not rule out an alternative actor using similar methods, and the 2017 case never reached a published formal finding.",
+        networks: [
+          ["Offshore financial conduits", "Cypriot accounts suspected of facilitating fund movement tied to Russian interference abroad (2017)."],
+          ["Doppelganger-style kompromat", "Video production matching characteristics of the established Doppelganger network active since 2021 against France, Germany, the US and Israel."]
+        ],
+        certHigh: 0, certMedium: 2
+      }],
+      actorNote: "Cyprus's dossier spans two structurally different roles: in 2017 Cyprus was investigated as a facilitation point for Russian activity directed elsewhere, while in 2026 Cyprus itself was the direct target, timed precisely to its EU Council presidency and a visit by President Zelenskyy. Cyprus's own recent pivot from a historically Kremlin-friendly stance to a pro-Western, pro-Ukraine position under President Christodoulides is explicitly cited by the source reporting as relevant context for why it may now be a more attractive target.",
+      aims: [
+        ["Facilitating Russian influence operations abroad financially","Cyprus's offshore sector investigated as a laundering tool for interference activity targeting other countries, not Cyprus itself (2017)."],
+        ["Discrediting a pro-Western president at a moment of maximum visibility","the 2026 video's release was timed precisely to Cyprus's EU presidency and Zelenskyy's visit, per Cypriot intelligence's own assessment of the timing."]
+      ],
+      sources: [
+        ["US House Intelligence Committee member Mike Quigley, statement (Apr. 2017)","US congressional investigation","Medium","https://quigley.house.gov/media-center/news-article/yahoo-news-us-probe-russian-election-interference-expands-cyprus"],
+        ["Cyprus Security Services assessment, via Associated Press (Jan. 2026)","National security service","Medium","https://www.king5.com/article/syndication/associatedpress/cyprus-says-video-alleging-the-country-is-corrupt-is-likely-the-product-of-russian-disinformation/616-0d1000b3-2721-45ef-9aa5-0924e4663366"]
+      ],
+      sourceNote: "With Cyprus coded, all 27 EU member states have a dossier. Luxembourg is the one case where the dossier records a searched-but-not-found result: three dedicated search passes in two languages produced only generic threat-awareness statements, with no specific, dated, attributed incident. That outcome is recorded as its own dossier type rather than papered over with a weaker source."
+    },
+
+    LU: {
+      title: "Luxembourg", eyebrow: "Dossier — member state (no confirmed incident)",
+      meta: "Searched, not found · three dedicated search passes, no incident met this database's inclusion bar",
+      stats: [ [0,"documented incidents"], [0,"attributed actors"], [3,"dedicated search passes"], [2,"general sources reviewed"] ],
+      years: [["2024",0],["2025",0],["2026",0]],
+      timeline: [
+        {id:"LU-CHECK-01", date:"General search", title:"General threat-awareness statements only", cert:"low", sev:"low",
+         desc:"Luxembourg's State Intelligence Service (SREL) describes rising concern about hybrid threats and disinformation in general terms, but no dated, specific, attributed incident targeting Luxembourg was identified."},
+        {id:"LU-CHECK-02", date:"French-language search", title:"No Luxembourg-specific mention found", cert:"low", sev:"low",
+         desc:"French-language reporting and EU Parliament resolutions on Russian interference in Europe make no specific reference to Luxembourg as a documented target, unlike neighbouring France, Germany or Belgium."},
+        {id:"LU-CHECK-03", date:"Network-specific search", title:"Luxembourg absent from named-network reporting", cert:"low", sev:"low",
+         desc:"Luxembourg does not appear among the member states named in reporting on established Russian-linked networks such as Doppelganger, Portal Kombat or Voice of Europe — unlike Germany, France, Poland, Belgium, the Netherlands and Hungary, all named in connection with Voice of Europe alone."}
+      ],
+      targets: [],
+      actors: [],
+      actorNote: "No actor is coded for Luxembourg because no incident met this database's evidentiary bar: a traceable source naming a specific, dated case with an identifiable target. This absence is itself informative — EU DisinfoLab's own factsheet on Luxembourg notes the country 'has not been immune to disinformation' in general terms, but the specific, attributable documentation available for most other member states in this dataset simply was not found for Luxembourg despite three separate search passes in two languages.",
+      aims: [],
+      sources: [
+        ["Luxembourg State Intelligence Service (SREL), 'Activities' page","National security service, general statement","Low","https://sre.gouvernement.lu/en/activites.html"],
+        ["EU DisinfoLab, 'The disinformation landscape in Luxembourg'","Specialised NGO country factsheet","Low","https://www.disinfo.eu/publications/disinformation-landscape-in-luxembourg/"]
+      ],
+      sourceNote: "This dossier documents an absence, not a finding: it is included, live and clickable, precisely so that 'no confirmed incident' is visibly distinct from 'not yet examined' — Luxembourg has been examined, using the same search effort applied to every other member state in this project, and did not yield a case that met the bar. This status should be revisited if new reporting emerges, not treated as a permanent conclusion."
+    }
+  };
+  var COUNTS = {}; Object.keys(DOSSIERS).forEach(function(k){ COUNTS[k] = DOSSIERS[k].stats[0][0]; });
+  var LIVE = {}; Object.keys(DOSSIERS).forEach(function(k){ LIVE[k] = true; });
+
+  function colorFor(code){
+    if(!LIVE[code]) return "#dcdad4";
+    var n = COUNTS[code] || 0;
+    if(n >= 6) return "#0d3a66";
+    if(n >= 3) return "#185fa5";
+    if(n >= 1) return "#7aa8cf";
+    return "#dcdad4";
+  }
+
+  function buildHexMap(){
+    var size = 27;
+    var hw = size*Math.sqrt(3), vh = size*1.5;
+    var maxCol = Math.max.apply(null, COUNTRIES.map(function(c){return c.col + 0.5*(c.row%2);}));
+    var maxRow = Math.max.apply(null, COUNTRIES.map(function(c){return c.row;}));
+    var svgW = (maxCol+1)*hw + size, svgH = (maxRow+1)*vh + size*1.2;
+    var svg = ['<svg class="hexmap" viewBox="0 0 '+svgW+' '+svgH+'" xmlns="http://www.w3.org/2000/svg" role="img"><title>Hex cartogram of EU member states, EU institutions and NATO, coded external-undermining incidents</title>'];
+
+    function hexPoints(cx, cy, r){
+      var pts = [];
+      for(var i=0;i<6;i++){
+        var ang = Math.PI/180 * (60*i - 30);
+        pts.push((cx+r*Math.cos(ang)).toFixed(1)+","+(cy+r*Math.sin(ang)).toFixed(1));
+      }
+      return pts.join(" ");
+    }
+
+    COUNTRIES.forEach(function(c){
+      var cx = size + hw*(c.col + 0.5*(c.row%2));
+      var cy = size + vh*c.row;
+      var pts = hexPoints(cx, cy, size-1.5);
+
+      if(c.isGhost){
+        svg.push('<polygon points="'+pts+'" fill="#f5f4f0" stroke="#d8d6cf" stroke-width="1.2" stroke-dasharray="3,2"><title>'+c.name+'</title></polygon>');
+        svg.push('<text x="'+cx+'" y="'+(cy+4)+'" text-anchor="middle" style="font-size:11px;font-weight:700;fill:#c7c5bd;">CH</text>');
+        return;
+      }
+      var fill = c.checkedZero ? '#c7ddce' : colorFor(c.code);
+      var live = LIVE[c.code];
+      var stroke = c.isEU ? '#f4b942' : (c.isNATO ? '#3d5a80' : '#ffffff');
+      var strokeW = c.isEU||c.isNATO ? 2.5 : 2;
+      var dash = c.isNATO ? ' stroke-dasharray="4,2.5"' : (c.checkedZero ? ' stroke-dasharray="2.5,1.5"' : '');
+      svg.push('<g class="hex '+(live?"live":"")+(c.isEU?" eu":"")+(c.isNATO?" nato":"")+'" data-code="'+c.code+'" onclick="'+(live?"showDossier('"+c.code+"')":"")+'">');
+      var nInc = COUNTS[c.code] || 0;
+      var tip;
+      if(!live){ tip = " — no confirmed incidents"; }
+      else if(c.checkedZero){ tip = " — searched, no confirmed incidents (click for dossier)"; }
+      else { tip = " — " + nInc + " incident" + (nInc === 1 ? "" : "s") + " (click for dossier)"; }
+      svg.push('<polygon points="'+pts+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+strokeW+'"><title>'+c.name+tip+'</title></polygon>');
+      svg.push('<text x="'+cx+'" y="'+(cy+(live?-2:4))+'" text-anchor="middle" font-weight="700" font-size="12" fill="'+(live?(c.checkedZero?"#1b1f26":"#ffffff"):"#9a9890")+'" style="pointer-events:none;">'+c.code+'</text>');
+      if(live){
+        svg.push('<text x="'+cx+'" y="'+(cy+12)+'" text-anchor="middle" font-size="10" fill="'+(c.checkedZero?"#1b1f26":"#ffffff")+'" opacity="0.9" style="pointer-events:none;">'+(COUNTS[c.code]||0)+'</text>');
+      }
+      svg.push('</g>');
+    });
+    svg.push('</svg>');
+    document.getElementById("hexmap-container").innerHTML = svg.join("");
+  }
+
+  function buildTiles(){
+    var el = document.getElementById("tiles");
+    var html = "";
+    var sorted = COUNTRIES.filter(function(c){ return !c.isGhost; }).sort(function(a,b){
+      if(a.isEU || a.isNATO) return 1; if(b.isEU || b.isNATO) return -1;
+      return a.name.localeCompare(b.name);
+    });
+    sorted.forEach(function(c){
+      var live = LIVE[c.code];
+      var n = COUNTS[c.code] || 0;
+      var statText;
+      if(!live){
+        statText = "no confirmed incidents";
+      } else if(c.checkedZero){
+        statText = "searched, none found — open dossier";
+      } else {
+        statText = n + " documented incident" + (n === 1 ? "" : "s") + " — open dossier";
+      }
+      html += '<div class="tile '+(live?"live":"dim")+(c.isEU?" eu-tile":"")+(c.isNATO?" nato-tile":"")+'" '+(live?'onclick="showDossier(\''+c.code+'\')"':'')+'>'
+            + '<div class="land">'+c.name+'</div>'
+            + '<div class="stat">'+statText+'</div>'
+            + '</div>';
+    });
+    el.innerHTML = html;
+  }
+
+  function certLabel(cert){ return cert.charAt(0).toUpperCase()+cert.slice(1); }
+
+  function renderDossier(code){
+    var d = DOSSIERS[code];
+    document.getElementById("d-eyebrow").textContent = d.eyebrow;
+    document.getElementById("d-title").textContent = d.title;
+    document.getElementById("d-meta").textContent = d.meta;
+
+    document.getElementById("d-stats").innerHTML = d.stats.map(function(s){
+      return '<div class="stat"><div class="n">'+s[0]+'</div><div class="l">'+s[1]+'</div></div>';
+    }).join("");
+
+    var maxY = Math.max.apply(null, d.years.map(function(y){return y[1];})) || 1;
+    document.getElementById("d-bars").innerHTML = d.years.map(function(y){
+      var h = Math.round((y[1]/maxY)*80) + (y[1]>0?4:2);
+      return '<div class="bar-col"><div class="bar-n">'+y[1]+'</div><div class="bar" style="height:'+h+'px"></div><div class="bar-y">'+y[0]+'</div></div>';
+    }).join("");
+
+    document.getElementById("d-timeline").innerHTML = d.timeline.map(function(t,i){
+      return '<li class="tl-item">'
+           + '<div class="tl-date">'+t.date+'</div>'
+           + '<div class="tl-dot-col"><div class="tl-dot" style="background:var(--'+t.sev+')"></div>'+(i<d.timeline.length-1?'<div class="tl-line"></div>':'')+'</div>'
+           + '<div class="tl-body"><div class="tl-id">'+t.id+'</div><div class="tl-title">'+t.title+'</div><div class="tl-desc">'+t.desc+'</div>'
+           + '<div class="badges"><span class="badge-outline">severity: '+t.sev+'</span><span class="badge cert-'+t.cert+'">certainty: '+t.cert+'</span></div></div>'
+           + '</li>';
+    }).join("");
+
+    var emptyState = function(msg){
+      return '<div class="empty-state">'+msg+'</div>';
+    };
+
+    document.getElementById("d-targets").innerHTML = d.targets.length
+      ? d.targets.map(function(t){
+          return '<div class="target-card"><div class="k">'+t[0]+'</div><div class="v">'+t[1]+'</div><div class="n">'+t[2]+'</div></div>';
+        }).join("")
+      : emptyState("No targets are listed, because no incident met this dossier\u2019s inclusion threshold. See the Actors and Sources tabs for what was searched and why nothing qualified.");
+
+    document.getElementById("d-actors").innerHTML = d.actors.length
+      ? d.actors.map(function(a){
+          var nets = a.networks.map(function(n){
+            return '<div class="net-row"><div class="net-name">'+n[0]+'</div><span class="arrow">→</span><div class="net-desc">'+n[1]+'</div></div>';
+          }).join("");
+          var caseWord = function(n){ return n===1 ? "case" : "cases"; };
+          return '<div class="actor-card"><h3>'+a.name+'</h3><div class="sub">'+a.sub+'</div>'+nets
+               + '<div class="badges"><span class="badge cert-high">Certainty high — '+a.certHigh+' '+caseWord(a.certHigh)+'</span>'
+               + '<span class="badge cert-medium">Certainty medium — '+a.certMedium+' '+caseWord(a.certMedium)+'</span></div></div>';
+        }).join("")
+      : "";
+    document.getElementById("d-actor-note").textContent = d.actorNote;
+
+    document.getElementById("d-aims").innerHTML = d.aims.length
+      ? d.aims.map(function(a){
+          return '<li><b>'+a[0]+':</b> '+a[1]+'</li>';
+        }).join("")
+      : '<li style="list-style:none;margin-left:-18px;">'
+        + emptyState("No aims are listed, because no incident met this dossier\u2019s inclusion threshold \u2014 there is no sourced statement of intent to summarise.")
+        + '</li>';
+
+    document.getElementById("d-sources").innerHTML = d.sources.map(function(s){
+      return '<tr><td><a class="ext" href="'+s[3]+'" target="_blank" rel="noopener">'+s[0]+'</a></td><td>'+s[1]+'</td><td>'+s[2]+'</td></tr>';
+    }).join("");
+    document.getElementById("d-source-note").textContent = d.sourceNote;
+  }
+
+  // ---- view switching ----
+  window.showDossier = function(code){
+    if(!DOSSIERS[code]) return;
+    renderDossier(code);
+    document.getElementById("mapstage").style.display = "none";
+    document.getElementById("dossier").style.display = "block";
+    document.querySelectorAll(".tab").forEach(function(t,i){t.classList.toggle("active", i===0);});
+    document.querySelectorAll(".tabpanel").forEach(function(p,i){p.classList.toggle("active", i===0);});
+    window.scrollTo({top:0, behavior:"smooth"});
+  };
+  window.showMap = function(){
+    document.getElementById("dossier").style.display = "none";
+    document.getElementById("mapstage").style.display = "block";
+    window.scrollTo({top:0, behavior:"smooth"});
+  };
+
+  document.querySelectorAll(".tab").forEach(function(tab){
+    tab.addEventListener("click", function(){
+      document.querySelectorAll(".tab").forEach(function(t){t.classList.remove("active");});
+      document.querySelectorAll(".tabpanel").forEach(function(p){p.classList.remove("active");});
+      tab.classList.add("active");
+      document.getElementById("panel-"+tab.dataset.tab).classList.add("active");
+    });
+  });
+
+  function normalizeActor(name){
+    if(name.indexOf("Russia/China") === 0) return "Multiple / joint actors (per-case mix)";
+    if(name.indexOf("Russia") === 0) return "Russia";
+    if(name.indexOf("Multiple actors") === 0) return "Multiple / joint actors (per-case mix)";
+    return name;
+  }
+
+  function buildActorSummary(){
+    var totals = {};
+    var totalIncidents = 0, attributedIncidents = 0;
+    Object.keys(DOSSIERS).forEach(function(code){
+      var d = DOSSIERS[code];
+      var dossierTotal = d.stats[0][0];
+      totalIncidents += dossierTotal;
+      var dossierAttributed = 0;
+      (d.actors || []).forEach(function(a){
+        var key = normalizeActor(a.name);
+        var n = (a.certHigh || 0) + (a.certMedium || 0);
+        totals[key] = (totals[key] || 0) + n;
+        dossierAttributed += n;
+      });
+      attributedIncidents += dossierAttributed;
+    });
+    var unattributed = totalIncidents - attributedIncidents;
+    if(unattributed > 0){
+      totals["Not attributed to a specific actor"] = (totals["Not attributed to a specific actor"] || 0) + unattributed;
+    }
+
+    var entries = Object.keys(totals).map(function(k){ return [k, totals[k]]; });
+    entries.sort(function(a,b){ return b[1]-a[1]; });
+    var max = entries.length ? entries[0][1] : 1;
+
+    document.getElementById("as-subtitle").textContent =
+      "Aggregated from the Actors tab of every dossier built so far — " + totalIncidents + " incidents across " + Object.keys(DOSSIERS).length + " dossiers.";
+
+    document.getElementById("actor-summary-rows").innerHTML = entries.map(function(e){
+      var pct = Math.round((e[1]/totalIncidents)*100);
+      var widthPct = Math.max(4, Math.round((e[1]/max)*100));
+      var muted = (e[0].indexOf("Not attributed") === 0 || e[0].indexOf("Multiple") === 0) ? " muted" : "";
+      return '<div class="as-row"><div class="as-label">'+e[0]+'</div>'
+           + '<div class="as-track"><div class="as-fill'+muted+'" style="width:'+widthPct+'%"></div></div>'
+           + '<div class="as-count">'+e[1]+' ('+pct+'%)</div></div>';
+    }).join("");
+
+    document.getElementById("as-caption").textContent =
+      "Counts reflect certainty-tagged attributions already shown per dossier, not a new judgement; a case with joint attribution (e.g. multiple states named together) is counted once under its own combined label rather than split across each named state. Recalculates automatically as new dossiers are coded.";
+  }
+
+  buildHexMap();
+  buildTiles();
+  buildActorSummary();
+})();
+</script>
+</body>
+</html>
